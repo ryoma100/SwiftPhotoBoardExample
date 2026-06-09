@@ -16,19 +16,24 @@ struct ItemView: View {
     @State private var timestamp: Date
     @State private var note: String
     @State private var localIdentifier: String?
-    @State private var thumbnailFileID: UUID?
     @State private var pickerItem: PhotosPickerItem?
+    @State private var capturedImage: UIImage?
     @State private var image: UIImage?
     @State private var isShowingFallback = false
+    @State private var isShowingPhotosPicker = false
+    @State private var isShowingCamera = false
 
     private let item: Item?
+    private let originalLocalIdentifier: String?
+    private let originalThumbnailFileID: UUID?
 
     init(item: Item? = nil) {
         self.item = item
+        self.originalLocalIdentifier = item?.localIdentifier
+        self.originalThumbnailFileID = item?.thumbnailFileID
         _timestamp = State(initialValue: item?.timestamp ?? Date())
         _note = State(initialValue: item?.note ?? "")
         _localIdentifier = State(initialValue: item?.localIdentifier)
-        _thumbnailFileID = State(initialValue: item?.thumbnailFileID)
     }
 
     var body: some View {
@@ -46,12 +51,24 @@ struct ItemView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                PhotosPicker(
-                    selection: $pickerItem,
-                    matching: .images,
-                    photoLibrary: .shared()
-                ) {
-                    Text(image == nil ? "Select Photo" : "Change Photo")
+                Button {
+                    isShowingPhotosPicker = true
+                } label: {
+                    Label("Select Photo", systemImage: "photo.on.rectangle")
+                }
+                if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                    Button {
+                        isShowingCamera = true
+                    } label: {
+                        Label("Take Photo", systemImage: "camera")
+                    }
+                }
+                if localIdentifier != nil || capturedImage != nil {
+                    Button(role: .destructive) {
+                        removePhoto()
+                    } label: {
+                        Label("Delete Photo", systemImage: "trash")
+                    }
                 }
             }
         }
@@ -59,30 +76,29 @@ struct ItemView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
-                    if let item {
-                        item.timestamp = timestamp
-                        item.note = note
-                        item.localIdentifier = localIdentifier
-                        item.thumbnailFileID = thumbnailFileID
-                    } else {
-                        let newItem = Item(
-                            timestamp: timestamp,
-                            note: note,
-                            localIdentifier: localIdentifier,
-                            thumbnailFileID: thumbnailFileID
-                        )
-                        modelContext.insert(newItem)
-                    }
-                    dismiss()
+                    Task { await save() }
                 }
             }
         }
+        .photosPicker(
+            isPresented: $isShowingPhotosPicker,
+            selection: $pickerItem,
+            matching: .images,
+            photoLibrary: .shared()
+        )
+        .fullScreenCover(isPresented: $isShowingCamera) {
+            CameraPicker { image in
+                isShowingCamera = false
+                if let image {
+                    handleCapturedImage(image)
+                }
+            }
+            .ignoresSafeArea()
+        }
         .onChange(of: pickerItem) { _, newValue in
             if let identifier = newValue?.itemIdentifier {
+                capturedImage = nil
                 localIdentifier = identifier
-                Task {
-                    await updateThumbnail(for: identifier)
-                }
             }
         }
         .task(id: localIdentifier) {
@@ -90,12 +106,78 @@ struct ItemView: View {
         }
     }
 
-    private func updateThumbnail(for identifier: String) async {
-        let oldFileID = thumbnailFileID
-        if let newID = await Self.saveThumbnail(for: identifier) {
-            thumbnailFileID = newID
-            if let oldFileID {
-                Self.deleteThumbnail(fileID: oldFileID)
+    private func removePhoto() {
+        capturedImage = nil
+        localIdentifier = nil
+        pickerItem = nil
+        image = nil
+        isShowingFallback = false
+    }
+
+    private func handleCapturedImage(_ newImage: UIImage) {
+        capturedImage = newImage
+        pickerItem = nil
+        localIdentifier = nil
+        image = newImage
+        isShowingFallback = false
+    }
+
+    private func save() async {
+        let finalLocalIdentifier: String?
+        let finalThumbnailFileID: UUID?
+        if let capturedImage {
+            guard let identifier = await Self.saveImageToPhotoLibrary(capturedImage) else {
+                return
+            }
+            finalLocalIdentifier = identifier
+            finalThumbnailFileID = await Self.saveThumbnail(for: identifier)
+            if let originalThumbnailFileID {
+                Self.deleteThumbnail(fileID: originalThumbnailFileID)
+            }
+        } else if localIdentifier == originalLocalIdentifier {
+            finalLocalIdentifier = localIdentifier
+            finalThumbnailFileID = originalThumbnailFileID
+        } else {
+            finalLocalIdentifier = localIdentifier
+            if let localIdentifier {
+                finalThumbnailFileID = await Self.saveThumbnail(for: localIdentifier)
+            } else {
+                finalThumbnailFileID = nil
+            }
+            if let originalThumbnailFileID {
+                Self.deleteThumbnail(fileID: originalThumbnailFileID)
+            }
+        }
+        if let item {
+            item.timestamp = timestamp
+            item.note = note
+            item.localIdentifier = finalLocalIdentifier
+            item.thumbnailFileID = finalThumbnailFileID
+        } else {
+            let newItem = Item(
+                timestamp: timestamp,
+                note: note,
+                localIdentifier: finalLocalIdentifier,
+                thumbnailFileID: finalThumbnailFileID
+            )
+            modelContext.insert(newItem)
+        }
+        dismiss()
+    }
+
+    private static func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
+        var status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        if status == .notDetermined {
+            status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        }
+        guard status == .authorized || status == .limited else { return nil }
+        return await withCheckedContinuation { continuation in
+            var placeholder: PHObjectPlaceholder?
+            PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetChangeRequest.creationRequestForAsset(from: image)
+                placeholder = request.placeholderForCreatedAsset
+            } completionHandler: { success, _ in
+                continuation.resume(returning: success ? placeholder?.localIdentifier : nil)
             }
         }
     }
@@ -134,7 +216,7 @@ struct ItemView: View {
         }
     }
 
-    private static func deleteThumbnail(fileID: UUID) {
+    static func deleteThumbnail(fileID: UUID) {
         let url = thumbnailsDirectory.appendingPathComponent("\(fileID.uuidString).jpg")
         try? FileManager.default.removeItem(at: url)
     }
@@ -145,13 +227,19 @@ struct ItemView: View {
     }
 
     private func loadImage() async {
+        if let capturedImage {
+            image = capturedImage
+            isShowingFallback = false
+            return
+        }
+        let thumbnail = loadThumbnailImage()
+        image = thumbnail
+        isShowingFallback = false
         if let localIdentifier,
            let assetImage = await loadAssetImage(for: localIdentifier) {
             image = assetImage
             isShowingFallback = false
         } else {
-            let thumbnail = loadThumbnailImage()
-            image = thumbnail
             isShowingFallback = (thumbnail != nil) && (localIdentifier != nil)
         }
     }
@@ -185,10 +273,47 @@ struct ItemView: View {
     }
 
     private func loadThumbnailImage() -> UIImage? {
-        guard let thumbnailFileID else { return nil }
+        guard localIdentifier == originalLocalIdentifier,
+              let originalThumbnailFileID else { return nil }
         let url = Self.thumbnailsDirectory
-            .appendingPathComponent("\(thumbnailFileID.uuidString).jpg")
+            .appendingPathComponent("\(originalThumbnailFileID.uuidString).jpg")
         guard let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)
     }
 }
+struct CameraPicker: UIViewControllerRepresentable {
+    var onCompletion: (UIImage?) -> Void
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onCompletion: onCompletion)
+    }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onCompletion: (UIImage?) -> Void
+
+        init(onCompletion: @escaping (UIImage?) -> Void) {
+            self.onCompletion = onCompletion
+        }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            onCompletion(info[.originalImage] as? UIImage)
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            onCompletion(nil)
+        }
+    }
+}
+

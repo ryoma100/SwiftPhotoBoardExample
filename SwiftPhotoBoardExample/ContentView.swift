@@ -54,7 +54,11 @@ struct ContentView: View {
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(items[index])
+                let item = items[index]
+                if let thumbnailFileID = item.thumbnailFileID {
+                    ItemView.deleteThumbnail(fileID: thumbnailFileID)
+                }
+                modelContext.delete(item)
             }
         }
     }

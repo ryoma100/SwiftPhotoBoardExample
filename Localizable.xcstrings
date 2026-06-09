@@ -4,7 +4,7 @@
     "Add Item" : {
 
     },
-    "Change Photo" : {
+    "Delete Photo" : {
 
     },
     "Edit Item" : {
@@ -40,6 +40,9 @@
 
     },
     "Select Photo" : {
+
+    },
+    "Take Photo" : {
 
     },
     "Timestamp" : {
