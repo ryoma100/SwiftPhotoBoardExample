@@ -1,0 +1,50 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add Item" : {
+
+    },
+    "Change Photo" : {
+
+    },
+    "Edit Item" : {
+
+    },
+    "Note" : {
+
+    },
+    "Photo" : {
+
+    },
+    "Photo from the library is unavailable. Showing thumbnail instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo from the library is unavailable. Showing thumbnail instead."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォトライブラリの写真を参照できないのでサムネイルを表示します"
+          }
+        }
+      }
+    },
+    "Save" : {
+
+    },
+    "Select an item" : {
+
+    },
+    "Select Photo" : {
+
+    },
+    "Timestamp" : {
+
+    }
+  },
+  "version" : "1.0"
+}

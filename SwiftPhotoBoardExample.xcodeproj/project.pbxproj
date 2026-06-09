@@ -10,6 +10,8 @@
 		2CDA03502FD715EC006AC2FD /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2CDA034E2FD715EC006AC2FD /* LICENSE.txt */; };
 		2CDA03512FD715EC006AC2FD /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 2CDA034D2FD715EC006AC2FD /* .gitignore */; };
 		2CDA03522FD715EC006AC2FD /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 2CDA034F2FD715EC006AC2FD /* README.md */; };
+		2CDA03542FD84D8E006AC2FD /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 2CDA03532FD84D8E006AC2FD /* InfoPlist.xcstrings */; };
+		2CDA03582FD858D1006AC2FD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 2CDA03572FD858D1006AC2FD /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +38,8 @@
 		2CDA034D2FD715EC006AC2FD /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		2CDA034E2FD715EC006AC2FD /* LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 		2CDA034F2FD715EC006AC2FD /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		2CDA03532FD84D8E006AC2FD /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		2CDA03572FD858D1006AC2FD /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -91,6 +95,8 @@
 				2CDA034D2FD715EC006AC2FD /* .gitignore */,
 				2CDA034E2FD715EC006AC2FD /* LICENSE.txt */,
 				2CDA034F2FD715EC006AC2FD /* README.md */,
+				2CDA03532FD84D8E006AC2FD /* InfoPlist.xcstrings */,
+				2CDA03572FD858D1006AC2FD /* Localizable.xcstrings */,
 			);
 			sourceTree = "<group>";
 		};
@@ -204,6 +210,7 @@
 			knownRegions = (
 				en,
 				Base,
+				ja,
 			);
 			mainGroup = 2CDA03182FD71498006AC2FD;
 			minimizedProjectReferenceProxies = 1;
@@ -224,6 +231,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2CDA03542FD84D8E006AC2FD /* InfoPlist.xcstrings in Resources */,
+				2CDA03582FD858D1006AC2FD /* Localizable.xcstrings in Resources */,
 				2CDA03502FD715EC006AC2FD /* LICENSE.txt in Resources */,
 				2CDA03512FD715EC006AC2FD /* .gitignore in Resources */,
 				2CDA03522FD715EC006AC2FD /* README.md in Resources */,
@@ -416,6 +425,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Photo Board";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow access to your photo library to display the selected photo in the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -439,7 +449,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};
@@ -454,6 +464,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Photo Board";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow access to your photo library to display the selected photo in the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -477,7 +488,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
