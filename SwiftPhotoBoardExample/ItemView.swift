@@ -5,10 +5,10 @@
 //  Created by Ryouichi Matsuda on 2026/06/09.
 //
 
-import SwiftUI
-import SwiftData
-import PhotosUI
 import Photos
+import PhotosUI
+import SwiftData
+import SwiftUI
 
 struct ItemView: View {
     @Environment(\.modelContext) private var modelContext
@@ -40,16 +40,20 @@ struct ItemView: View {
         Form {
             DatePicker("Timestamp", selection: $timestamp)
             TextField("Note", text: $note, axis: .vertical)
+                .accessibilityIdentifier("Note")
             Section("Photo") {
                 if let image {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFit()
+                        .accessibilityIdentifier("CapturedPhoto")
                 }
                 if isShowingFallback {
-                    Text("Photo from the library is unavailable. Showing thumbnail instead.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Photo from the library is unavailable. Showing thumbnail instead."
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
                 Button {
                     isShowingPhotosPicker = true
@@ -126,7 +130,11 @@ struct ItemView: View {
         let finalLocalIdentifier: String?
         let finalThumbnailFileID: UUID?
         if let capturedImage {
-            guard let identifier = await Self.saveImageToPhotoLibrary(capturedImage) else {
+            guard
+                let identifier = await Self.saveImageToPhotoLibrary(
+                    capturedImage
+                )
+            else {
                 return
             }
             finalLocalIdentifier = identifier
@@ -140,7 +148,9 @@ struct ItemView: View {
         } else {
             finalLocalIdentifier = localIdentifier
             if let localIdentifier {
-                finalThumbnailFileID = await Self.saveThumbnail(for: localIdentifier)
+                finalThumbnailFileID = await Self.saveThumbnail(
+                    for: localIdentifier
+                )
             } else {
                 finalThumbnailFileID = nil
             }
@@ -165,7 +175,9 @@ struct ItemView: View {
         dismiss()
     }
 
-    private static func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
+    private static func saveImageToPhotoLibrary(_ image: UIImage) async
+        -> String?
+    {
         var status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         if status == .notDetermined {
             status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
@@ -174,22 +186,32 @@ struct ItemView: View {
         return await withCheckedContinuation { continuation in
             var placeholder: PHObjectPlaceholder?
             PHPhotoLibrary.shared().performChanges {
-                let request = PHAssetChangeRequest.creationRequestForAsset(from: image)
+                let request = PHAssetChangeRequest.creationRequestForAsset(
+                    from: image
+                )
                 placeholder = request.placeholderForCreatedAsset
             } completionHandler: { success, _ in
-                continuation.resume(returning: success ? placeholder?.localIdentifier : nil)
+                continuation.resume(
+                    returning: success ? placeholder?.localIdentifier : nil
+                )
             }
         }
     }
 
-    private static func saveThumbnail(for localIdentifier: String) async -> UUID? {
-        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
+    private static func saveThumbnail(for localIdentifier: String) async
+        -> UUID?
+    {
+        let assets = PHAsset.fetchAssets(
+            withLocalIdentifiers: [localIdentifier],
+            options: nil
+        )
         guard let asset = assets.firstObject else { return nil }
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
         options.isNetworkAccessAllowed = true
         let targetSize = CGSize(width: 64, height: 64)
-        let thumbnail: UIImage? = await withCheckedContinuation { continuation in
+        let thumbnail: UIImage? = await withCheckedContinuation {
+            continuation in
             PHImageManager.default().requestImage(
                 for: asset,
                 targetSize: targetSize,
@@ -199,11 +221,15 @@ struct ItemView: View {
                 continuation.resume(returning: result)
             }
         }
-        guard let thumbnail, let data = thumbnail.jpegData(compressionQuality: 0.85) else {
+        guard let thumbnail,
+            let data = thumbnail.jpegData(compressionQuality: 0.85)
+        else {
             return nil
         }
         let id = UUID()
-        let url = thumbnailsDirectory.appendingPathComponent("\(id.uuidString).jpg")
+        let url = thumbnailsDirectory.appendingPathComponent(
+            "\(id.uuidString).jpg"
+        )
         do {
             try FileManager.default.createDirectory(
                 at: thumbnailsDirectory,
@@ -217,12 +243,17 @@ struct ItemView: View {
     }
 
     static func deleteThumbnail(fileID: UUID) {
-        let url = thumbnailsDirectory.appendingPathComponent("\(fileID.uuidString).jpg")
+        let url = thumbnailsDirectory.appendingPathComponent(
+            "\(fileID.uuidString).jpg"
+        )
         try? FileManager.default.removeItem(at: url)
     }
 
     static var thumbnailsDirectory: URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let base = FileManager.default.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first!
         return base.appendingPathComponent("Thumbnails", isDirectory: true)
     }
 
@@ -236,7 +267,8 @@ struct ItemView: View {
         image = thumbnail
         isShowingFallback = false
         if let localIdentifier,
-           let assetImage = await loadAssetImage(for: localIdentifier) {
+            let assetImage = await loadAssetImage(for: localIdentifier)
+        {
             image = assetImage
             isShowingFallback = false
         } else {
@@ -252,7 +284,10 @@ struct ItemView: View {
         guard status == .authorized || status == .limited else {
             return nil
         }
-        let assets = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
+        let assets = PHAsset.fetchAssets(
+            withLocalIdentifiers: [localIdentifier],
+            options: nil
+        )
         guard let asset = assets.firstObject else {
             return nil
         }
@@ -274,7 +309,8 @@ struct ItemView: View {
 
     private func loadThumbnailImage() -> UIImage? {
         guard localIdentifier == originalLocalIdentifier,
-              let originalThumbnailFileID else { return nil }
+            let originalThumbnailFileID
+        else { return nil }
         let url = Self.thumbnailsDirectory
             .appendingPathComponent("\(originalThumbnailFileID.uuidString).jpg")
         guard let data = try? Data(contentsOf: url) else { return nil }
@@ -291,13 +327,18 @@ struct CameraPicker: UIViewControllerRepresentable {
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    func updateUIViewController(
+        _ uiViewController: UIImagePickerController,
+        context: Context
+    ) {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(onCompletion: onCompletion)
     }
 
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate,
+        UINavigationControllerDelegate
+    {
         let onCompletion: (UIImage?) -> Void
 
         init(onCompletion: @escaping (UIImage?) -> Void) {
@@ -306,7 +347,8 @@ struct CameraPicker: UIViewControllerRepresentable {
 
         func imagePickerController(
             _ picker: UIImagePickerController,
-            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+            didFinishPickingMediaWithInfo info: [UIImagePickerController
+                .InfoKey: Any]
         ) {
             onCompletion(info[.originalImage] as? UIImage)
         }
@@ -316,4 +358,3 @@ struct CameraPicker: UIViewControllerRepresentable {
         }
     }
 }
-
