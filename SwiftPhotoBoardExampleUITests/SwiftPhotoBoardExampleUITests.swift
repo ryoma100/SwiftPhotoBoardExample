@@ -37,7 +37,7 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         throws
     {
         // click Add button
-        app.buttons["Add Item"].tap()
+        app.buttons[L(en: "Add Item", ja: "項目を追加")].tap()
 
         // input Node field
         let noteField = app.textFields["Note"]
@@ -47,7 +47,7 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         noteField.typeText(note)
 
         // click "Select Photo" button
-        app.buttons["Select Photo"].tap()
+        app.buttons[L(en: "Select Photo", ja: "写真を選択")].tap()
 
         // click First Photo
         let firstPhoto = app.scrollViews.images.firstMatch
@@ -56,13 +56,14 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         XCTAssertTrue(app.images["CapturedPhoto"].waitForExistence(timeout: 10))
 
         // click Save button
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[L(en: "Save", ja: "保存")]
         XCTAssertTrue(waitForEnabled(saveButton, timeout: 5))
         saveButton.tap()
 
         // assert list item
         XCTAssertTrue(
-            app.navigationBars["Photo Board"].waitForExistence(timeout: 5)
+            app.navigationBars[L(en: "Photo Board", ja: "フォトボード")]
+                .waitForExistence(timeout: 5)
         )
         XCTAssertEqual(app.collectionViews.cells.count, cellCount + 1)
     }
@@ -76,7 +77,8 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         XCTAssertTrue(firstCell.waitForExistence(timeout: 5))
         firstCell.tap()
         XCTAssertTrue(
-            app.navigationBars["Edit Item"].waitForExistence(timeout: 5)
+            app.navigationBars[L(en: "Edit Item", ja: "項目を編集")]
+                .waitForExistence(timeout: 5)
         )
 
         // input Node field
@@ -91,7 +93,7 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         noteField.typeText(modifiedNote)
 
         // click "Take Photo" button
-        app.buttons["Take Photo"].tap()
+        app.buttons[L(en: "Take Photo", ja: "写真を撮影")].tap()
         let shutter = app.buttons["PhotoCapture"]
         XCTAssertTrue(shutter.waitForExistence(timeout: 10))
         shutter.tap()
@@ -107,13 +109,14 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         XCTAssertTrue(app.images["CapturedPhoto"].waitForExistence(timeout: 5))
 
         // click Back button
-        let backButton = app.buttons["Photo Board"]
+        let backButton = app.buttons[L(en: "Photo Board", ja: "フォトボード")]
         XCTAssertTrue(backButton.waitForExistence(timeout: 5))
         backButton.tap()
 
         // assert list item
         XCTAssertTrue(
-            app.navigationBars["Photo Board"].waitForExistence(timeout: 5)
+            app.navigationBars[L(en: "Photo Board", ja: "フォトボード")]
+                .waitForExistence(timeout: 5)
         )
         XCTAssertEqual(app.collectionViews.cells.count, cellCount + 1)
         XCTAssertTrue(
@@ -131,7 +134,8 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         XCTAssertTrue(firstCell.waitForExistence(timeout: 5))
         firstCell.tap()
         XCTAssertTrue(
-            app.navigationBars["Edit Item"].waitForExistence(timeout: 5)
+            app.navigationBars[L(en: "Edit Item", ja: "項目を編集")]
+                .waitForExistence(timeout: 5)
         )
 
         // input Node field
@@ -149,19 +153,20 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         XCTAssertTrue(
             app.images["CapturedPhoto"].waitForExistence(timeout: 10)
         )
-        app.buttons["Delete Photo"].tap()
+        app.buttons[L(en: "Delete Photo", ja: "写真を削除")].tap()
         XCTAssertFalse(
             app.images["CapturedPhoto"].waitForExistence(timeout: 2)
         )
 
         // click Save Button
-        let saveButton = app.buttons["Save"]
+        let saveButton = app.buttons[L(en: "Save", ja: "保存")]
         XCTAssertTrue(waitForEnabled(saveButton, timeout: 5))
         saveButton.tap()
 
         // assert list item
         XCTAssertTrue(
-            app.navigationBars["Photo Board"].waitForExistence(timeout: 5)
+            app.navigationBars[L(en: "Photo Board", ja: "フォトボード")]
+                .waitForExistence(timeout: 5)
         )
         XCTAssertEqual(app.collectionViews.cells.count, cellCount + 1)
         XCTAssertTrue(
@@ -187,6 +192,14 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         deleteButton?.tap()
 
         XCTAssertEqual(app.collectionViews.cells.count, cellCount)
+    }
+
+    private var isJapanese: Bool {
+        Locale.preferredLanguages.first?.hasPrefix("ja") ?? false
+    }
+
+    private func L(en: String, ja: String) -> String {
+        isJapanese ? ja : en
     }
 
     @MainActor
