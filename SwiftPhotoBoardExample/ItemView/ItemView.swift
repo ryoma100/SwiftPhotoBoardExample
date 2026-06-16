@@ -38,8 +38,12 @@ struct ItemView: View {
     var body: some View {
         Form {
             DatePicker("Timestamp", selection: $timestamp)
-            TextField("Note", text: $note, axis: .vertical)
-                .accessibilityIdentifier("Note")
+            ClearableTextField(
+                titleKey: "Note",
+                text: $note,
+                fieldIdentifier: "Note",
+                clearIdentifier: "ClearNote"
+            )
             PhotoSection(
                 isShowingPhotosPicker: $isShowingPhotosPicker,
                 isShowingCamera: $isShowingCamera,
@@ -49,6 +53,7 @@ struct ItemView: View {
                 onRemove: removePhoto
             )
         }
+        .scrollDismissesKeyboard(.interactively)
         .navigationTitle(item == nil ? "Add Item" : "Edit Item")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
