@@ -11,6 +11,7 @@ import UIKit
 enum PhotoLibraryStore {
     static func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
         guard await ensureAuthorization() else { return nil }
+
         return await withCheckedContinuation { continuation in
             var placeholder: PHObjectPlaceholder?
             PHPhotoLibrary.shared().performChanges {
@@ -31,14 +32,17 @@ enum PhotoLibraryStore {
         targetSize: CGSize = CGSize(width: 1024, height: 1024)
     ) async -> UIImage? {
         guard await ensureAuthorization() else { return nil }
-        let assets = PHAsset.fetchAssets(
+
+        let asset = PHAsset.fetchAssets(
             withLocalIdentifiers: [localIdentifier],
             options: nil
-        )
-        guard let asset = assets.firstObject else { return nil }
+        ).firstObject
+        guard let asset else { return nil }
+
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
         options.isNetworkAccessAllowed = true
+
         return await withCheckedContinuation { continuation in
             PHImageManager.default().requestImage(
                 for: asset,

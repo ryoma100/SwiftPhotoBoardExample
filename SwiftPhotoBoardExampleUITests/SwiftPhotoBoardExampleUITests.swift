@@ -28,7 +28,8 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         try _testDeleteItem(app, cellCount)
 
         // Wait for SwiftData auto commit
-        Thread.sleep(forTimeInterval: 10)
+        //Thread.sleep(forTimeInterval: 10)
+
         app.terminate()
     }
 
@@ -43,7 +44,7 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let noteField = app.textFields["Note"]
         XCTAssertTrue(noteField.waitForExistence(timeout: 5))
         noteField.tap()
-        let note = (UUID().uuidString).replacingOccurrences(of: "-", with: "")
+        let note = UUID().uuidString
         noteField.typeText(note)
 
         // click "Select Photo" button
@@ -85,11 +86,11 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let noteField = app.textFields["Note"]
         XCTAssertTrue(noteField.waitForExistence(timeout: 5))
         let originalNote = (noteField.value as? String) ?? ""
-        noteField.doubleTap()
-        let modifiedNote = (UUID().uuidString).replacingOccurrences(
-            of: "-",
-            with: ""
-        )
+        let clearButton = app.buttons["ClearNote"]
+        XCTAssertTrue(clearButton.waitForExistence(timeout: 5))
+        clearButton.tap()
+        noteField.tap()
+        let modifiedNote = UUID().uuidString
         noteField.typeText(modifiedNote)
 
         // click "Take Photo" button
@@ -142,11 +143,11 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let noteField = app.textFields["Note"]
         XCTAssertTrue(noteField.waitForExistence(timeout: 5))
         let originalNote = (noteField.value as? String) ?? ""
-        noteField.doubleTap()
-        let editedNote = (UUID().uuidString).replacingOccurrences(
-            of: "-",
-            with: ""
-        )
+        let clearButton = app.buttons["ClearNote"]
+        XCTAssertTrue(clearButton.waitForExistence(timeout: 5))
+        clearButton.tap()
+        noteField.tap()
+        let editedNote = UUID().uuidString
         noteField.typeText(editedNote)
 
         // click "Delete Photo" button

@@ -18,16 +18,18 @@ enum ThumbnailStore {
     }
 
     static func saveThumbnail(for localIdentifier: String) async -> UUID? {
-        let assets = PHAsset.fetchAssets(
+        let asset = PHAsset.fetchAssets(
             withLocalIdentifiers: [localIdentifier],
             options: nil
-        )
-        guard let asset = assets.firstObject else { return nil }
+        ).firstObject
+        guard let asset else { return nil }
+
+        let targetSize = CGSize(width: 64, height: 64)
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
         options.isNetworkAccessAllowed = true
-        let targetSize = CGSize(width: 64, height: 64)
-        let thumbnail: UIImage? = await withCheckedContinuation {
+
+        let thumbnailImage: UIImage? = await withCheckedContinuation {
             continuation in
             PHImageManager.default().requestImage(
                 for: asset,
@@ -38,11 +40,11 @@ enum ThumbnailStore {
                 continuation.resume(returning: result)
             }
         }
-        guard let thumbnail,
-            let data = thumbnail.jpegData(compressionQuality: 0.85)
-        else {
-            return nil
-        }
+        guard let thumbnailImage else { return nil }
+
+        let jpegData = thumbnailImage.jpegData(compressionQuality: 0.85)
+        guard let jpegData else { return nil }
+
         let id = UUID()
         let url = directory.appendingPathComponent("\(id.uuidString).jpg")
         do {
@@ -50,7 +52,7 @@ enum ThumbnailStore {
                 at: directory,
                 withIntermediateDirectories: true
             )
-            try data.write(to: url)
+            try jpegData.write(to: url)
             return id
         } catch {
             return nil

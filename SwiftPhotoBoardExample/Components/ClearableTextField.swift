@@ -17,33 +17,33 @@ struct ClearableTextField: View {
     @FocusState private var isFocused: Bool
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            TextField(titleKey, text: $text, axis: axis)
-                .padding(.trailing, 24)
-                .focused($isFocused)
-                .accessibilityIdentifier(fieldIdentifier)
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button {
-                            isFocused = false
-                        } label: {
-                            Image(systemName: "keyboard.chevron.compact.down")
-                        }
-                        .accessibilityLabel("Done")
+        TextField(titleKey, text: $text, axis: axis)
+            .padding(.trailing, 24)
+            .focused($isFocused)
+            .accessibilityIdentifier(fieldIdentifier)
+            .overlay(alignment: .topTrailing) {
+                if !text.isEmpty {
+                    Button {
+                        isFocused = false
+                        text = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
                     }
+                    .buttonStyle(.borderless)
+                    .accessibilityIdentifier(clearIdentifier)
                 }
-            if !text.isEmpty {
-                Button {
-                    isFocused = false
-                    text = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.borderless)
-                .accessibilityIdentifier(clearIdentifier)
             }
-        }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button {
+                        isFocused = false
+                    } label: {
+                        Image(systemName: "keyboard.chevron.compact.down")
+                    }
+                    .accessibilityLabel("Done")
+                }
+            }
     }
 }

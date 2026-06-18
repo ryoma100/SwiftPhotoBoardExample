@@ -19,17 +19,7 @@ struct ListView: View {
                     NavigationLink {
                         ItemView(item: item)
                     } label: {
-                        HStack {
-                            PhotoThumbnailView(thumbnailFileID: item.thumbnailFileID)
-                            VStack(alignment: .leading) {
-                                Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                                if !item.note.isEmpty {
-                                    Text(item.note)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
+                        ListItemView(item: item)
                     }
                 }
                 .onDelete(perform: deleteItems)
@@ -57,9 +47,10 @@ struct ListView: View {
             for index in offsets {
                 let item = items[index]
                 if let thumbnailFileID = item.thumbnailFileID {
-                    ItemView.deleteThumbnail(fileID: thumbnailFileID)
+                    ThumbnailStore.deleteThumbnail(fileID: thumbnailFileID)
                 }
                 modelContext.delete(item)
+                try? modelContext.save()
             }
         }
     }
