@@ -86,6 +86,23 @@
         }
       }
     },
+    "OK" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "OK"
+          }
+        }
+      }
+    },
     "Photo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -99,6 +116,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "写真"
+          }
+        }
+      }
+    },
+    "Please enter a title before saving." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a title before saving."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存する前にタイトルを入力してください。"
           }
         }
       }
@@ -205,6 +239,23 @@
         }
       }
     },
+    "Title is required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title is required"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルが必要です"
+          }
+        }
+      }
+    },
     "Timestamp" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -218,6 +269,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日時"
+          }
+        }
+      }
+    },
+    "Title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトル"
           }
         }
       }

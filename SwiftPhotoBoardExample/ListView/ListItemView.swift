@@ -14,6 +14,7 @@ struct ListItemView: View {
         HStack {
             PhotoThumbnailView(thumbnailFileID: item.thumbnailFileID)
             VStack(alignment: .leading) {
+                Text(item.title)
                 Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
                 if !item.note.isEmpty {
                     Text(item.note)

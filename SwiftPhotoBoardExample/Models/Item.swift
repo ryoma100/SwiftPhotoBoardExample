@@ -14,18 +14,21 @@ final class Item {
     #Index<Item>([\.timestamp])
 
     private(set) var id: UUID
+    var title: String
     var timestamp: Date
     var note: String
     var localIdentifier: String?
     var thumbnailFileID: UUID?
 
     init(
+        title: String = "",
         timestamp: Date,
         note: String = "",
         localIdentifier: String? = nil,
         thumbnailFileID: UUID? = nil
     ) {
         self.id = UUID()
+        self.title = title
         self.timestamp = timestamp
         self.note = note
         self.localIdentifier = localIdentifier

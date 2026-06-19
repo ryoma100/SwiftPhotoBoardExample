@@ -13,6 +13,7 @@ struct ItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    @State private var title: String
     @State private var timestamp: Date
     @State private var note: String
     @State private var localIdentifier: String?
@@ -23,11 +24,13 @@ struct ItemView: View {
 
     @State private var isShowingPhotosPicker = false
     @State private var isShowingCamera = false
+    @State private var isShowingEmptyTitleAlert = false
 
     private let item: Item?
 
     init(item: Item? = nil) {
         self.item = item
+        _title = State(initialValue: item?.title ?? "")
         _timestamp = State(initialValue: item?.timestamp ?? Date())
         _note = State(initialValue: item?.note ?? "")
         _localIdentifier = State(initialValue: item?.localIdentifier)
@@ -35,6 +38,13 @@ struct ItemView: View {
 
     var body: some View {
         Form {
+            ClearableTextField(
+                titleKey: "Title",
+                text: $title,
+                axis: .horizontal,
+                fieldIdentifier: "Title",
+                clearIdentifier: "ClearTitle"
+            )
             DatePicker("Timestamp", selection: $timestamp)
             ClearableTextField(
                 titleKey: "Note",
@@ -58,7 +68,30 @@ struct ItemView: View {
                 Button("Save") {
                     Task { await save() }
                 }
+                .foregroundStyle(isTitleEmpty ? Color.gray : Color.accentColor)
             }
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button {
+                    UIApplication.shared.sendAction(
+                        #selector(UIResponder.resignFirstResponder),
+                        to: nil,
+                        from: nil,
+                        for: nil
+                    )
+                } label: {
+                    Image(systemName: "keyboard.chevron.compact.down")
+                }
+                .accessibilityLabel("Done")
+            }
+        }
+        .alert(
+            "Title is required",
+            isPresented: $isShowingEmptyTitleAlert
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please enter a title before saving.")
         }
         .photosPicker(
             isPresented: $isShowingPhotosPicker,
@@ -86,6 +119,10 @@ struct ItemView: View {
         }
     }
 
+    private var isTitleEmpty: Bool {
+        title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private func removePhoto() {
         capturedImage = nil
         localIdentifier = nil
@@ -103,6 +140,11 @@ struct ItemView: View {
     }
 
     private func save() async {
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            isShowingEmptyTitleAlert = true
+            return
+        }
         guard let resolved = await resolvePhotoPersistence() else { return }
         persistItem(
             localIdentifier: resolved.localIdentifier,
@@ -150,12 +192,14 @@ struct ItemView: View {
 
     private func persistItem(localIdentifier: String?, thumbnailFileID: UUID?) {
         if let item {
+            item.title = title
             item.timestamp = timestamp
             item.note = note
             item.localIdentifier = localIdentifier
             item.thumbnailFileID = thumbnailFileID
         } else {
             let newItem = Item(
+                title: title,
                 timestamp: timestamp,
                 note: note,
                 localIdentifier: localIdentifier,

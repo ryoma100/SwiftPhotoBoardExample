@@ -34,16 +34,5 @@ struct ClearableTextField: View {
                     .accessibilityIdentifier(clearIdentifier)
                 }
             }
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button {
-                        isFocused = false
-                    } label: {
-                        Image(systemName: "keyboard.chevron.compact.down")
-                    }
-                    .accessibilityLabel("Done")
-                }
-            }
     }
 }

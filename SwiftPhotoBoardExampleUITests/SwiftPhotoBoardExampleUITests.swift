@@ -40,6 +40,13 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         // click Add button
         app.buttons[L(en: "Add Item", ja: "項目を追加")].tap()
 
+        // input Title field
+        let titleField = app.textFields["Title"]
+        XCTAssertTrue(titleField.waitForExistence(timeout: 5))
+        titleField.tap()
+        let title = "title-\(cellCount + 1)"
+        titleField.typeText(title)
+
         // input Node field
         let noteField = app.textFields["Note"]
         XCTAssertTrue(noteField.waitForExistence(timeout: 5))
@@ -54,6 +61,7 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let firstPhoto = app.scrollViews.images.firstMatch
         XCTAssertTrue(firstPhoto.waitForExistence(timeout: 10))
         firstPhoto.tap()
+        allowPhotoLibraryAccessIfNeeded()
         XCTAssertTrue(app.images["CapturedPhoto"].waitForExistence(timeout: 10))
 
         // click Save button
@@ -67,6 +75,9 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
                 .waitForExistence(timeout: 5)
         )
         XCTAssertEqual(app.collectionViews.cells.count, cellCount + 1)
+        XCTAssertTrue(
+            app.staticTexts[title].waitForExistence(timeout: 5)
+        )
     }
 
     @MainActor
@@ -81,6 +92,13 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
             app.navigationBars[L(en: "Edit Item", ja: "項目を編集")]
                 .waitForExistence(timeout: 5)
         )
+
+        // clear Title field
+        let titleField = app.textFields["Title"]
+        XCTAssertTrue(titleField.waitForExistence(timeout: 5))
+        let clearTitleButton = app.buttons["ClearTitle"]
+        XCTAssertTrue(clearTitleButton.waitForExistence(timeout: 5))
+        clearTitleButton.tap()
 
         // input Node field
         let noteField = app.textFields["Note"]
@@ -109,6 +127,16 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         usePhotoButton?.tap()
         XCTAssertTrue(app.images["CapturedPhoto"].waitForExistence(timeout: 5))
 
+        // click Save button
+        let saveButton = app.buttons[L(en: "Save", ja: "保存")]
+        XCTAssertTrue(waitForEnabled(saveButton, timeout: 5))
+        saveButton.tap()
+
+        // dismiss "Title is required" alert
+        let alert = app.alerts.firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["OK"].tap()
+
         // click Back button
         let backButton = app.buttons[L(en: "Photo Board", ja: "フォトボード")]
         XCTAssertTrue(backButton.waitForExistence(timeout: 5))
@@ -120,6 +148,11 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
                 .waitForExistence(timeout: 5)
         )
         XCTAssertEqual(app.collectionViews.cells.count, cellCount + 1)
+        XCTAssertTrue(
+            app.staticTexts["title-\(cellCount + 1)"].waitForExistence(
+                timeout: 5
+            )
+        )
         XCTAssertTrue(
             app.staticTexts[originalNote].waitForExistence(timeout: 5)
         )
@@ -171,6 +204,11 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         )
         XCTAssertEqual(app.collectionViews.cells.count, cellCount + 1)
         XCTAssertTrue(
+            app.staticTexts["title-\(cellCount + 1)"].waitForExistence(
+                timeout: 5
+            )
+        )
+        XCTAssertTrue(
             app.staticTexts[editedNote].waitForExistence(timeout: 5)
         )
         XCTAssertFalse(app.staticTexts[originalNote].exists)
@@ -180,10 +218,12 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
     private func _testDeleteItem(_ app: XCUIApplication, _ cellCount: Int)
         throws
     {
+        // click First item
         let firstCell = app.collectionViews.cells.element(boundBy: 0)
         XCTAssertTrue(firstCell.waitForExistence(timeout: 5))
-        firstCell.swipeLeft()
 
+        // click Delete button
+        firstCell.swipeLeft()
         let deleteButton = firstExistingButton(
             in: app,
             labels: ["Delete", "削除"],
@@ -192,6 +232,7 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         XCTAssertNotNil(deleteButton, "Delete button not found")
         deleteButton?.tap()
 
+        // assert list item
         XCTAssertEqual(app.collectionViews.cells.count, cellCount)
     }
 
@@ -230,5 +271,32 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
             Thread.sleep(forTimeInterval: 0.2)
         }
         return false
+    }
+
+    @MainActor
+    private func allowPhotoLibraryAccessIfNeeded(timeout: TimeInterval = 5) {
+        let springboard = XCUIApplication(
+            bundleIdentifier: "com.apple.springboard"
+        )
+        let allowLabels = [
+            "Allow Full Access",
+            "Allow Access to All Photos",
+            "フルアクセスを許可",
+            "すべての写真へのアクセスを許可",
+            "OK",
+            "Allow",
+            "許可",
+        ]
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            for label in allowLabels {
+                let button = springboard.buttons[label]
+                if button.exists {
+                    button.tap()
+                    return
+                }
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
     }
 }
