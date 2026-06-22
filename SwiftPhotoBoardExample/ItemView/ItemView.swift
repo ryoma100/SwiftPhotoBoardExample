@@ -145,65 +145,49 @@ struct ItemView: View {
             isShowingEmptyTitleAlert = true
             return
         }
-        guard let resolved = await resolvePhotoPersistence() else { return }
-        persistItem(
-            localIdentifier: resolved.localIdentifier,
-            thumbnailFileID: resolved.thumbnailFileID
-        )
-        dismiss()
-    }
-
-    private func resolvePhotoPersistence() async -> (localIdentifier: String?, thumbnailFileID: UUID?)? {
         let originalLocalIdentifier = item?.localIdentifier
-        let originalThumbnailFileID = item?.thumbnailFileID
-        
+        let resolvedLocalIdentifier: String?
+
         if let capturedImage {
             guard
                 let identifier =
                     await PhotoLibraryStore
                     .saveImageToPhotoLibrary(capturedImage)
             else {
-                return nil
+                return
             }
-            let thumbnailFileID = await ThumbnailStore.saveThumbnail(
-                for: identifier
-            )
-            if let originalThumbnailFileID {
-                ThumbnailStore.deleteThumbnail(fileID: originalThumbnailFileID)
+            await ThumbnailStore.saveThumbnail(for: identifier)
+            if let originalLocalIdentifier, originalLocalIdentifier != identifier {
+                ThumbnailStore.deleteThumbnail(localIdentifier: originalLocalIdentifier)
             }
-            return (identifier, thumbnailFileID)
-        }
-        if localIdentifier == originalLocalIdentifier {
-            return (localIdentifier, originalThumbnailFileID)
-        }
-        let thumbnailFileID: UUID?
-        if let localIdentifier {
-            thumbnailFileID = await ThumbnailStore.saveThumbnail(
-                for: localIdentifier
-            )
+            resolvedLocalIdentifier = identifier
+        } else if localIdentifier == originalLocalIdentifier {
+            resolvedLocalIdentifier = localIdentifier
         } else {
-            thumbnailFileID = nil
+            if let localIdentifier {
+                await ThumbnailStore.saveThumbnail(for: localIdentifier)
+            }
+            if let originalLocalIdentifier {
+                ThumbnailStore.deleteThumbnail(localIdentifier: originalLocalIdentifier)
+            }
+            resolvedLocalIdentifier = localIdentifier
         }
-        if let originalThumbnailFileID {
-            ThumbnailStore.deleteThumbnail(fileID: originalThumbnailFileID)
-        }
-        return (localIdentifier, thumbnailFileID)
+        persistItem(localIdentifier: resolvedLocalIdentifier)
+        dismiss()
     }
 
-    private func persistItem(localIdentifier: String?, thumbnailFileID: UUID?) {
+    private func persistItem(localIdentifier: String?) {
         if let item {
             item.title = title
             item.timestamp = timestamp
             item.note = note
             item.localIdentifier = localIdentifier
-            item.thumbnailFileID = thumbnailFileID
         } else {
             let newItem = Item(
                 title: title,
                 timestamp: timestamp,
                 note: note,
-                localIdentifier: localIdentifier,
-                thumbnailFileID: thumbnailFileID
+                localIdentifier: localIdentifier
             )
             modelContext.insert(newItem)
         }
@@ -229,12 +213,11 @@ struct ItemView: View {
 
     private func loadThumbnailImage() -> UIImage? {
         let originalLocalIdentifier = item?.localIdentifier
-        let originalThumbnailFileID = item?.thumbnailFileID
 
         guard localIdentifier == originalLocalIdentifier,
-            let originalThumbnailFileID
+            let originalLocalIdentifier
         else { return nil }
-        return ThumbnailStore.loadThumbnail(fileID: originalThumbnailFileID)
+        return ThumbnailStore.loadThumbnail(localIdentifier: originalLocalIdentifier)
     }
 
     private func loadAssetImage() async -> UIImage? {

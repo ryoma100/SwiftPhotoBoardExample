@@ -12,7 +12,7 @@ struct ListItemView: View {
 
     var body: some View {
         HStack {
-            PhotoThumbnailView(thumbnailFileID: item.thumbnailFileID)
+            PhotoThumbnailView(localIdentifier: item.localIdentifier)
             VStack(alignment: .leading) {
                 Text(item.title)
                 Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
@@ -27,7 +27,7 @@ struct ListItemView: View {
 }
 
 private struct PhotoThumbnailView: View {
-    let thumbnailFileID: UUID?
+    let localIdentifier: String?
     @State private var image: UIImage?
     
     private static let size: CGFloat = 64
@@ -46,14 +46,14 @@ private struct PhotoThumbnailView: View {
         .frame(width: Self.size, height: Self.size)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .task(id: thumbnailFileID) {
+        .task(id: localIdentifier) {
             await loadThumbnail()
         }
     }
     
     private func loadThumbnail() async {
-        if let thumbnailFileID {
-            image = ThumbnailStore.loadThumbnail(fileID: thumbnailFileID)
+        if let localIdentifier {
+            image = ThumbnailStore.loadThumbnail(localIdentifier: localIdentifier)
         } else {
             image = nil
         }

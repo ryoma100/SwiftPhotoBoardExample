@@ -46,8 +46,8 @@ struct ListView: View {
         withAnimation {
             for index in offsets {
                 let item = items[index]
-                if let thumbnailFileID = item.thumbnailFileID {
-                    ThumbnailStore.deleteThumbnail(fileID: thumbnailFileID)
+                if let localIdentifier = item.localIdentifier {
+                    ThumbnailStore.deleteThumbnail(localIdentifier: localIdentifier)
                 }
                 modelContext.delete(item)
                 try? modelContext.save()
