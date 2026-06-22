@@ -8,7 +8,13 @@
 import Photos
 import UIKit
 
-enum ThumbnailStore {
+protocol ThumbnailStoring {
+    func saveThumbnail(for localIdentifier: String) async
+    func deleteThumbnail(localIdentifier: String)
+    func loadThumbnail(localIdentifier: String) -> UIImage?
+}
+
+struct ThumbnailStore: ThumbnailStoring {
     static var directory: URL {
         let base = FileManager.default.urls(
             for: .applicationSupportDirectory,
@@ -17,7 +23,7 @@ enum ThumbnailStore {
         return base.appendingPathComponent("Thumbnails", isDirectory: true)
     }
 
-    static func saveThumbnail(for localIdentifier: String) async {
+    func saveThumbnail(for localIdentifier: String) async {
         let asset = PHAsset.fetchAssets(
             withLocalIdentifiers: [localIdentifier],
             options: nil
@@ -45,10 +51,10 @@ enum ThumbnailStore {
         let jpegData = thumbnailImage.jpegData(compressionQuality: 0.85)
         guard let jpegData else { return }
 
-        let url = directory.appendingPathComponent(fileName(for: localIdentifier))
+        let url = Self.directory.appendingPathComponent(Self.fileName(for: localIdentifier))
         do {
             try FileManager.default.createDirectory(
-                at: directory,
+                at: Self.directory,
                 withIntermediateDirectories: true
             )
             try jpegData.write(to: url)
@@ -56,15 +62,27 @@ enum ThumbnailStore {
         }
     }
 
-    static func deleteThumbnail(localIdentifier: String) {
-        let url = directory.appendingPathComponent(fileName(for: localIdentifier))
+    func deleteThumbnail(localIdentifier: String) {
+        let url = Self.directory.appendingPathComponent(Self.fileName(for: localIdentifier))
         try? FileManager.default.removeItem(at: url)
     }
 
-    static func loadThumbnail(localIdentifier: String) -> UIImage? {
-        let url = directory.appendingPathComponent(fileName(for: localIdentifier))
+    func loadThumbnail(localIdentifier: String) -> UIImage? {
+        let url = Self.directory.appendingPathComponent(Self.fileName(for: localIdentifier))
         guard let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)
+    }
+
+    static func saveThumbnail(for localIdentifier: String) async {
+        await ThumbnailStore().saveThumbnail(for: localIdentifier)
+    }
+
+    static func deleteThumbnail(localIdentifier: String) {
+        ThumbnailStore().deleteThumbnail(localIdentifier: localIdentifier)
+    }
+
+    static func loadThumbnail(localIdentifier: String) -> UIImage? {
+        ThumbnailStore().loadThumbnail(localIdentifier: localIdentifier)
     }
 
     private static func fileName(for localIdentifier: String) -> String {

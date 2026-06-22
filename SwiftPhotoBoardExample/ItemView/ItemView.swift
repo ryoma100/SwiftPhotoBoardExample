@@ -157,8 +157,12 @@ struct ItemView: View {
                 return
             }
             await ThumbnailStore.saveThumbnail(for: identifier)
-            if let originalLocalIdentifier, originalLocalIdentifier != identifier {
-                ThumbnailStore.deleteThumbnail(localIdentifier: originalLocalIdentifier)
+            if let originalLocalIdentifier,
+                originalLocalIdentifier != identifier
+            {
+                ThumbnailStore.deleteThumbnail(
+                    localIdentifier: originalLocalIdentifier
+                )
             }
             resolvedLocalIdentifier = identifier
         } else if localIdentifier == originalLocalIdentifier {
@@ -168,7 +172,9 @@ struct ItemView: View {
                 await ThumbnailStore.saveThumbnail(for: localIdentifier)
             }
             if let originalLocalIdentifier {
-                ThumbnailStore.deleteThumbnail(localIdentifier: originalLocalIdentifier)
+                ThumbnailStore.deleteThumbnail(
+                    localIdentifier: originalLocalIdentifier
+                )
             }
             resolvedLocalIdentifier = localIdentifier
         }
@@ -217,7 +223,9 @@ struct ItemView: View {
         guard localIdentifier == originalLocalIdentifier,
             let originalLocalIdentifier
         else { return nil }
-        return ThumbnailStore.loadThumbnail(localIdentifier: originalLocalIdentifier)
+        return ThumbnailStore.loadThumbnail(
+            localIdentifier: originalLocalIdentifier
+        )
     }
 
     private func loadAssetImage() async -> UIImage? {
@@ -227,6 +235,6 @@ struct ItemView: View {
 }
 
 #Preview {
-    ItemView()
-        .modelContainer(for: Item.self, inMemory: true)
+    let container = try! makeModelContiner(isStoredInMemoryOnly: true)
+    ItemView().modelContainer(container)
 }

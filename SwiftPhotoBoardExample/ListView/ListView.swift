@@ -5,12 +5,19 @@
 //  Created by Ryouichi Matsuda on 2026/06/09.
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ListView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Item.timestamp, order: .reverse) private var items: [Item]
+    private(set) var viewModel: ListViewModel
+
+    init(modelContext: ModelContext) {
+        self.viewModel = ListViewModel(
+            modelContext: modelContext,
+            thumbnailStore: ThumbnailStore()
+        )
+    }
 
     var body: some View {
         NavigationSplitView {
@@ -22,7 +29,11 @@ struct ListView: View {
                         ListItemView(item: item)
                     }
                 }
-                .onDelete(perform: deleteItems)
+                .onDelete { offsets in
+                    withAnimation {
+                        viewModel.deleteItems(items: items, offsets: offsets)
+                    }
+                }
             }
             .navigationTitle("Photo Board")
             .toolbar {
@@ -41,22 +52,10 @@ struct ListView: View {
             Text("Select an item")
         }
     }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                let item = items[index]
-                if let localIdentifier = item.localIdentifier {
-                    ThumbnailStore.deleteThumbnail(localIdentifier: localIdentifier)
-                }
-                modelContext.delete(item)
-                try? modelContext.save()
-            }
-        }
-    }
 }
 
 #Preview {
-    ListView()
-        .modelContainer(for: Item.self, inMemory: true)
+    let container = try! makeModelContiner(isStoredInMemoryOnly: true)
+    ListView(modelContext: container.mainContext)
+        .modelContainer(container)
 }
