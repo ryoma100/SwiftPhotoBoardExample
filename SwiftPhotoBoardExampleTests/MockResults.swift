@@ -43,5 +43,30 @@ class ThumbnailStoringMock: ThumbnailStoring {
     }
 }
 
+class PhotoLibraryStoringMock: PhotoLibraryStoring {
+    init() { }
+
+
+    private(set) var saveImageToPhotoLibraryCallCount = 0
+    var saveImageToPhotoLibraryHandler: ((UIImage) async -> String?)?
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
+        saveImageToPhotoLibraryCallCount += 1
+        if let saveImageToPhotoLibraryHandler = saveImageToPhotoLibraryHandler {
+            return await saveImageToPhotoLibraryHandler(image)
+        }
+        return nil
+    }
+
+    private(set) var loadAssetImageCallCount = 0
+    var loadAssetImageHandler: ((String, CGSize) async -> UIImage?)?
+    func loadAssetImage(for localIdentifier: String, targetSize: CGSize) async -> UIImage? {
+        loadAssetImageCallCount += 1
+        if let loadAssetImageHandler = loadAssetImageHandler {
+            return await loadAssetImageHandler(localIdentifier, targetSize)
+        }
+        return nil
+    }
+}
+
 
 

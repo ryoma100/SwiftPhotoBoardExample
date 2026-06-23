@@ -27,9 +27,14 @@ struct ItemView: View {
     @State private var isShowingEmptyTitleAlert = false
 
     private let item: Item?
+    private let photoLibraryStore: PhotoLibraryStoring
 
-    init(item: Item? = nil) {
+    init(
+        item: Item? = nil,
+        photoLibraryStore: PhotoLibraryStoring = PhotoLibraryStore()
+    ) {
         self.item = item
+        self.photoLibraryStore = photoLibraryStore
         _title = State(initialValue: item?.title ?? "")
         _timestamp = State(initialValue: item?.timestamp ?? Date())
         _note = State(initialValue: item?.note ?? "")
@@ -151,7 +156,7 @@ struct ItemView: View {
         if let capturedImage {
             guard
                 let identifier =
-                    await PhotoLibraryStore
+                    await photoLibraryStore
                     .saveImageToPhotoLibrary(capturedImage)
             else {
                 return
@@ -230,7 +235,7 @@ struct ItemView: View {
 
     private func loadAssetImage() async -> UIImage? {
         guard let localIdentifier else { return nil }
-        return await PhotoLibraryStore.loadAssetImage(for: localIdentifier)
+        return await photoLibraryStore.loadAssetImage(for: localIdentifier)
     }
 }
 

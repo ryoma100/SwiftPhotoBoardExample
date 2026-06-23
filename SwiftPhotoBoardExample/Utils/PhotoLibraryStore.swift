@@ -8,8 +8,26 @@
 import Photos
 import UIKit
 
-enum PhotoLibraryStore {
-    static func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
+/// @mockable
+protocol PhotoLibraryStoring {
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> String?
+    func loadAssetImage(
+        for localIdentifier: String,
+        targetSize: CGSize
+    ) async -> UIImage?
+}
+
+extension PhotoLibraryStoring {
+    func loadAssetImage(for localIdentifier: String) async -> UIImage? {
+        await loadAssetImage(
+            for: localIdentifier,
+            targetSize: CGSize(width: 1024, height: 1024)
+        )
+    }
+}
+
+struct PhotoLibraryStore: PhotoLibraryStoring {
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
         guard await ensureAuthorization() else { return nil }
 
         return await withCheckedContinuation { continuation in
@@ -27,9 +45,9 @@ enum PhotoLibraryStore {
         }
     }
 
-    static func loadAssetImage(
+    func loadAssetImage(
         for localIdentifier: String,
-        targetSize: CGSize = CGSize(width: 1024, height: 1024)
+        targetSize: CGSize
     ) async -> UIImage? {
         guard await ensureAuthorization() else { return nil }
 
@@ -55,7 +73,7 @@ enum PhotoLibraryStore {
         }
     }
 
-    private static func ensureAuthorization() async -> Bool {
+    private func ensureAuthorization() async -> Bool {
         var status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
         if status == .notDetermined {
             status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
