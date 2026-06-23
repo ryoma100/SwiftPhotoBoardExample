@@ -19,7 +19,7 @@ struct ListViewModelTests {
     func deleteItemsRemovesItemFromModelContext() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoreMock()
+        let store = ThumbnailStoringMock()
         let viewModel = ListViewModel(
             modelContext: context,
             thumbnailStore: store
@@ -49,7 +49,9 @@ struct ListViewModelTests {
     func deleteItemsDeletesThumbnailWhenLocalIdentifierExists() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoreMock()
+        let store = ThumbnailStoringMock()
+        var deletedIdentifiers: [String] = []
+        store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
             modelContext: context,
             thumbnailStore: store
@@ -65,14 +67,14 @@ struct ListViewModelTests {
 
         viewModel.deleteItems(items: [item], offsets: IndexSet(integer: 0))
 
-        #expect(store.deletedIdentifiers == ["id-123"])
+        #expect(deletedIdentifiers == ["id-123"])
     }
 
     @Test
     func deleteItemsDoesNotDeleteThumbnailWhenLocalIdentifierIsNil() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoreMock()
+        let store = ThumbnailStoringMock()
         let viewModel = ListViewModel(
             modelContext: context,
             thumbnailStore: store
@@ -84,14 +86,16 @@ struct ListViewModelTests {
 
         viewModel.deleteItems(items: [item], offsets: IndexSet(integer: 0))
 
-        #expect(store.deletedIdentifiers.isEmpty)
+        #expect(store.deleteThumbnailCallCount == 0)
     }
 
     @Test
     func deleteItemsDeletesMultipleItemsAtGivenOffsets() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoreMock()
+        let store = ThumbnailStoringMock()
+        var deletedIdentifiers: [String] = []
+        store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
             modelContext: context,
             thumbnailStore: store
@@ -125,14 +129,16 @@ struct ListViewModelTests {
         let remaining = try context.fetch(FetchDescriptor<Item>())
         #expect(remaining.count == 1)
         #expect(remaining.first?.title == "B")
-        #expect(Set(store.deletedIdentifiers) == Set(["id-1", "id-3"]))
+        #expect(Set(deletedIdentifiers) == Set(["id-1", "id-3"]))
     }
 
     @Test
     func deleteItemsDeletesOnlyThumbnailsForItemsWithLocalIdentifier() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoreMock()
+        let store = ThumbnailStoringMock()
+        var deletedIdentifiers: [String] = []
+        store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
             modelContext: context,
             thumbnailStore: store
@@ -155,26 +161,6 @@ struct ListViewModelTests {
 
         let remaining = try context.fetch(FetchDescriptor<Item>())
         #expect(remaining.isEmpty)
-        #expect(store.deletedIdentifiers == ["id-1"])
-    }
-}
-
-final class ThumbnailStoreMock: ThumbnailStoring {
-    private(set) var savedIdentifiers: [String] = []
-    private(set) var deletedIdentifiers: [String] = []
-    private(set) var loadedIdentifiers: [String] = []
-    var loadResult: UIImage? = UIImage()
-    
-    func saveThumbnail(for localIdentifier: String) async {
-        savedIdentifiers.append(localIdentifier)
-    }
-    
-    func deleteThumbnail(localIdentifier: String) {
-        deletedIdentifiers.append(localIdentifier)
-    }
-    
-    func loadThumbnail(localIdentifier: String) -> UIImage? {
-        loadedIdentifiers.append(localIdentifier)
-        return loadResult
+        #expect(deletedIdentifiers == ["id-1"])
     }
 }

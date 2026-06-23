@@ -8,6 +8,7 @@
 import Photos
 import UIKit
 
+/// @mockable
 protocol ThumbnailStoring {
     func saveThumbnail(for localIdentifier: String) async
     func deleteThumbnail(localIdentifier: String)

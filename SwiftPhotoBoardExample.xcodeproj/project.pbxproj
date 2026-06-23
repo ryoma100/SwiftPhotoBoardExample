@@ -42,6 +42,23 @@
 		2CDA03572FD858D1006AC2FD /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2CF907C12FEAC7B800F40649 /* Exceptions for "SwiftPhotoBoardExampleTests" folder in "SwiftPhotoBoardExample" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockResults.swift,
+			);
+			target = 2CDA03202FD71498006AC2FD /* SwiftPhotoBoardExample */;
+		};
+		2CF907C22FEAC7B800F40649 /* Exceptions for "SwiftPhotoBoardExampleTests" folder in "SwiftPhotoBoardExampleTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				MockResults.swift,
+			);
+			target = 2CDA032F2FD71499006AC2FD /* SwiftPhotoBoardExampleTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2CDA03232FD71498006AC2FD /* SwiftPhotoBoardExample */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -50,6 +67,10 @@
 		};
 		2CDA03332FD71499006AC2FD /* SwiftPhotoBoardExampleTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2CF907C12FEAC7B800F40649 /* Exceptions for "SwiftPhotoBoardExampleTests" folder in "SwiftPhotoBoardExample" target */,
+				2CF907C22FEAC7B800F40649 /* Exceptions for "SwiftPhotoBoardExampleTests" folder in "SwiftPhotoBoardExampleTests" target */,
+			);
 			path = SwiftPhotoBoardExampleTests;
 			sourceTree = "<group>";
 		};
