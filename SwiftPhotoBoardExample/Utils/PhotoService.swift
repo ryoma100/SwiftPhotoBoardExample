@@ -9,7 +9,7 @@ import Photos
 import UIKit
 
 /// @mockable
-protocol PhotoLibraryStoring {
+protocol PhotoService {
     func saveImageToPhotoLibrary(_ image: UIImage) async -> String?
     func loadAssetImage(
         for localIdentifier: String,
@@ -17,16 +17,7 @@ protocol PhotoLibraryStoring {
     ) async -> UIImage?
 }
 
-extension PhotoLibraryStoring {
-    func loadAssetImage(for localIdentifier: String) async -> UIImage? {
-        await loadAssetImage(
-            for: localIdentifier,
-            targetSize: CGSize(width: 1024, height: 1024)
-        )
-    }
-}
-
-struct PhotoLibraryStore: PhotoLibraryStoring {
+struct PhotoServiceImpl: PhotoService {
     func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
         guard await ensureAuthorization() else { return nil }
 

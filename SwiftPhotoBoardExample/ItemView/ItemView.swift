@@ -36,8 +36,8 @@ struct ItemView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let item: Item?
-    private let photoLibraryStore: PhotoLibraryStoring
-    private let thmbnailStore: ThumbnailStoring
+    private let photoLibraryService: PhotoService
+    private let thumbnailService: ThumbnailService
 
     @State private var title: String
     @State private var timestamp: Date
@@ -46,12 +46,12 @@ struct ItemView: View {
 
     init(
         item: Item? = nil,
-        photoLibraryStore: PhotoLibraryStoring = PhotoLibraryStore(),
-        thmbnailStore: ThumbnailStoring = ThumbnailStore()
+        photoLibraryService: PhotoService = PhotoServiceImpl(),
+        thumbnailService: ThumbnailService = ThumbnailServiceImpl()
     ) {
         self.item = item
-        self.photoLibraryStore = photoLibraryStore
-        self.thmbnailStore = thmbnailStore
+        self.photoLibraryService = photoLibraryService
+        self.thumbnailService = thumbnailService
         _title = State(initialValue: item?.title ?? "")
         _timestamp = State(initialValue: item?.timestamp ?? Date())
         _note = State(initialValue: item?.note ?? "")
@@ -120,12 +120,13 @@ struct ItemView: View {
     {
         guard let localIdentifier else { return nil }
 
-        if let assetImage = await photoLibraryStore.loadAssetImage(
-            for: localIdentifier
+        if let assetImage = await photoLibraryService.loadAssetImage(
+            for: localIdentifier,
+            targetSize: CGSize(width: 1024, height: 1024)
         ) {
             return .photo(localIdentifier: localIdentifier, image: assetImage)
         }
-        if let thumbnail = ThumbnailStore.loadThumbnail(
+        if let thumbnail = thumbnailService.loadThumbnail(
             localIdentifier: localIdentifier
         ) {
             return .thumbnail(
@@ -162,15 +163,15 @@ struct ItemView: View {
         }
         if case .camera(let capturedImage) = imageSource {
             if let localIdentifier =
-                await photoLibraryStore
+                await photoLibraryService
                 .saveImageToPhotoLibrary(capturedImage)
             {
-                await thmbnailStore.saveThumbnail(for: localIdentifier)
+                await thumbnailService.saveThumbnail(for: localIdentifier)
                 return localIdentifier
             }
         }
         if case .photo(let localIdentifier, _) = imageSource {
-            await ThumbnailStore.saveThumbnail(for: localIdentifier)
+            await thumbnailService.saveThumbnail(for: localIdentifier)
             return localIdentifier
         }
         return nil

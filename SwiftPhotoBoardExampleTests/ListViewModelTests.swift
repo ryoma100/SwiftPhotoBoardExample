@@ -19,7 +19,7 @@ struct ListViewModelTests {
     func deleteItemsRemovesItemFromModelContext() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoringMock()
+        let store = ThumbnailServiceMock()
         let viewModel = ListViewModel(
             modelContext: context,
             thumbnailStore: store
@@ -49,7 +49,7 @@ struct ListViewModelTests {
     func deleteItemsDeletesThumbnailWhenLocalIdentifierExists() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoringMock()
+        let store = ThumbnailServiceMock()
         var deletedIdentifiers: [String] = []
         store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
@@ -74,7 +74,7 @@ struct ListViewModelTests {
     func deleteItemsDoesNotDeleteThumbnailWhenLocalIdentifierIsNil() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoringMock()
+        let store = ThumbnailServiceMock()
         let viewModel = ListViewModel(
             modelContext: context,
             thumbnailStore: store
@@ -93,7 +93,7 @@ struct ListViewModelTests {
     func deleteItemsDeletesMultipleItemsAtGivenOffsets() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoringMock()
+        let store = ThumbnailServiceMock()
         var deletedIdentifiers: [String] = []
         store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
@@ -136,7 +136,7 @@ struct ListViewModelTests {
     func deleteItemsDeletesOnlyThumbnailsForItemsWithLocalIdentifier() throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         var context: ModelContext { container.mainContext }
-        let store = ThumbnailStoringMock()
+        let store = ThumbnailServiceMock()
         var deletedIdentifiers: [String] = []
         store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(

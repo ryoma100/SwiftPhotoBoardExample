@@ -11,9 +11,9 @@ import SwiftUI
 @Observable
 final class ListViewModel {
     private let modelContext: ModelContext
-    private let thumbnailStore: ThumbnailStoring
+    private let thumbnailStore: ThumbnailService
 
-    init(modelContext: ModelContext, thumbnailStore: ThumbnailStoring) {
+    init(modelContext: ModelContext, thumbnailStore: ThumbnailService) {
         self.modelContext = modelContext
         self.thumbnailStore = thumbnailStore
     }

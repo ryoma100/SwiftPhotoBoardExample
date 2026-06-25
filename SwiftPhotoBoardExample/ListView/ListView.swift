@@ -15,7 +15,7 @@ struct ListView: View {
     init(modelContext: ModelContext) {
         self.viewModel = ListViewModel(
             modelContext: modelContext,
-            thumbnailStore: ThumbnailStore()
+            thumbnailStore: ThumbnailServiceImpl()
         )
     }
 

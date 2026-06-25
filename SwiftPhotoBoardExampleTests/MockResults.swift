@@ -8,7 +8,7 @@ import Photos
 import UIKit
 
 
-class ThumbnailStoringMock: ThumbnailStoring {
+class ThumbnailServiceMock: ThumbnailService {
     init() { }
 
 
@@ -43,7 +43,7 @@ class ThumbnailStoringMock: ThumbnailStoring {
     }
 }
 
-class PhotoLibraryStoringMock: PhotoLibraryStoring {
+class PhotoServiceMock: PhotoService {
     init() { }
 
 

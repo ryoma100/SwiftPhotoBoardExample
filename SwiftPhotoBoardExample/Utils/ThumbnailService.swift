@@ -9,13 +9,13 @@ import Photos
 import UIKit
 
 /// @mockable
-protocol ThumbnailStoring {
+protocol ThumbnailService {
     func saveThumbnail(for localIdentifier: String) async
     func deleteThumbnail(localIdentifier: String)
     func loadThumbnail(localIdentifier: String) -> UIImage?
 }
 
-struct ThumbnailStore: ThumbnailStoring {
+struct ThumbnailServiceImpl: ThumbnailService {
     static var directory: URL {
         let base = FileManager.default.urls(
             for: .applicationSupportDirectory,
@@ -72,18 +72,6 @@ struct ThumbnailStore: ThumbnailStoring {
         let url = Self.directory.appendingPathComponent(Self.fileName(for: localIdentifier))
         guard let data = try? Data(contentsOf: url) else { return nil }
         return UIImage(data: data)
-    }
-
-    static func saveThumbnail(for localIdentifier: String) async {
-        await ThumbnailStore().saveThumbnail(for: localIdentifier)
-    }
-
-    static func deleteThumbnail(localIdentifier: String) {
-        ThumbnailStore().deleteThumbnail(localIdentifier: localIdentifier)
-    }
-
-    static func loadThumbnail(localIdentifier: String) -> UIImage? {
-        ThumbnailStore().loadThumbnail(localIdentifier: localIdentifier)
     }
 
     private static func fileName(for localIdentifier: String) -> String {
