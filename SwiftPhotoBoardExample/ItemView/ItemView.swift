@@ -9,36 +9,52 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
+enum ImageSource {
+    case photo(localIdentifier: String, image: UIImage)
+    case thumbnail(localIdentifier: String, image: UIImage)
+    case camera(image: UIImage)
+
+    var localIdentifier: String? {
+        switch self {
+        case .photo(let localIdentifier, _), .thumbnail(let localIdentifier, _):
+            return localIdentifier
+        case .camera:
+            return nil
+        }
+    }
+
+    var image: UIImage {
+        switch self {
+        case .photo(_, let image), .thumbnail(_, let image), .camera(let image):
+            return image
+        }
+    }
+}
+
 struct ItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    private let item: Item?
+    private let photoLibraryStore: PhotoLibraryStoring
+    private let thmbnailStore: ThumbnailStoring
+
     @State private var title: String
     @State private var timestamp: Date
     @State private var note: String
-    @State private var localIdentifier: String?
-    @State private var pickerItem: PhotosPickerItem?
-    @State private var capturedImage: UIImage?
-    @State private var image: UIImage?
-    @State private var isShowingFallback = false
-
-    @State private var isShowingPhotosPicker = false
-    @State private var isShowingCamera = false
-    @State private var isShowingEmptyTitleAlert = false
-
-    private let item: Item?
-    private let photoLibraryStore: PhotoLibraryStoring
+    @State private var imageSource: ImageSource?
 
     init(
         item: Item? = nil,
-        photoLibraryStore: PhotoLibraryStoring = PhotoLibraryStore()
+        photoLibraryStore: PhotoLibraryStoring = PhotoLibraryStore(),
+        thmbnailStore: ThumbnailStoring = ThumbnailStore()
     ) {
         self.item = item
         self.photoLibraryStore = photoLibraryStore
+        self.thmbnailStore = thmbnailStore
         _title = State(initialValue: item?.title ?? "")
         _timestamp = State(initialValue: item?.timestamp ?? Date())
         _note = State(initialValue: item?.note ?? "")
-        _localIdentifier = State(initialValue: item?.localIdentifier)
     }
 
     var body: some View {
@@ -57,137 +73,72 @@ struct ItemView: View {
                 fieldIdentifier: "Note",
                 clearIdentifier: "ClearNote"
             )
-            PhotoSection(
-                isShowingPhotosPicker: $isShowingPhotosPicker,
-                isShowingCamera: $isShowingCamera,
-                image: image,
-                isShowingFallback: isShowingFallback,
-                hasPhoto: localIdentifier != nil || capturedImage != nil,
-                onRemove: removePhoto
-            )
+            Section("Photo") {
+                ImageOrThumbnail(imageSource: imageSource)
+                SelectPhotoButton { localIdentifier in
+                    Task { await handleSelectPhoto(localIdentifier) }
+                }
+                TakeCameraButton { handleTakeCamera($0) }
+                RemoveImageButton(imageSource: imageSource) {
+                    handleRemoveImage()
+                }
+            }
         }
-        .scrollDismissesKeyboard(.interactively)
         .navigationTitle(item == nil ? "Add Item" : "Edit Item")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
-                    Task { await save() }
-                }
-                .foregroundStyle(isTitleEmpty ? Color.gray : Color.accentColor)
+                SaveButton(title: title) { Task { await handleSave() } }
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button {
-                    UIApplication.shared.sendAction(
-                        #selector(UIResponder.resignFirstResponder),
-                        to: nil,
-                        from: nil,
-                        for: nil
-                    )
-                } label: {
-                    Image(systemName: "keyboard.chevron.compact.down")
-                }
-                .accessibilityLabel("Done")
+                KeyboardDownButton()
             }
         }
-        .alert(
-            "Title is required",
-            isPresented: $isShowingEmptyTitleAlert
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Please enter a title before saving.")
-        }
-        .photosPicker(
-            isPresented: $isShowingPhotosPicker,
-            selection: $pickerItem,
-            matching: .images,
-            photoLibrary: .shared()
-        )
-        .fullScreenCover(isPresented: $isShowingCamera) {
-            CameraPicker { image in
-                isShowingCamera = false
-                if let image {
-                    handleCapturedImage(image)
-                }
-            }
-            .ignoresSafeArea()
-        }
-        .onChange(of: pickerItem) { _, newValue in
-            if let identifier = newValue?.itemIdentifier {
-                capturedImage = nil
-                localIdentifier = identifier
-            }
-        }
-        .task(id: localIdentifier) {
-            await loadImage()
-        }
+        .scrollDismissesKeyboard(.interactively)
+        .task { await handleSelectPhoto(item?.localIdentifier) }
     }
 
-    private var isTitleEmpty: Bool {
-        title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    private func handleSelectPhoto(_ localIdentifier: String?) async {
+        imageSource = await loadImageSource(localIdentifier)
     }
 
-    private func removePhoto() {
-        capturedImage = nil
-        localIdentifier = nil
-        pickerItem = nil
-        image = nil
-        isShowingFallback = false
+    private func handleTakeCamera(_ cameraImage: UIImage) {
+        imageSource = .camera(image: cameraImage)
     }
 
-    private func handleCapturedImage(_ newImage: UIImage) {
-        capturedImage = newImage
-        pickerItem = nil
-        localIdentifier = nil
-        image = newImage
-        isShowingFallback = false
+    private func handleRemoveImage() {
+        imageSource = nil
     }
 
-    private func save() async {
-        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            isShowingEmptyTitleAlert = true
-            return
-        }
-        let originalLocalIdentifier = item?.localIdentifier
-        let resolvedLocalIdentifier: String?
-
-        if let capturedImage {
-            guard
-                let identifier =
-                    await photoLibraryStore
-                    .saveImageToPhotoLibrary(capturedImage)
-            else {
-                return
-            }
-            await ThumbnailStore.saveThumbnail(for: identifier)
-            if let originalLocalIdentifier,
-                originalLocalIdentifier != identifier
-            {
-                ThumbnailStore.deleteThumbnail(
-                    localIdentifier: originalLocalIdentifier
-                )
-            }
-            resolvedLocalIdentifier = identifier
-        } else if localIdentifier == originalLocalIdentifier {
-            resolvedLocalIdentifier = localIdentifier
-        } else {
-            if let localIdentifier {
-                await ThumbnailStore.saveThumbnail(for: localIdentifier)
-            }
-            if let originalLocalIdentifier {
-                ThumbnailStore.deleteThumbnail(
-                    localIdentifier: originalLocalIdentifier
-                )
-            }
-            resolvedLocalIdentifier = localIdentifier
-        }
-        persistItem(localIdentifier: resolvedLocalIdentifier)
+    private func handleSave() async {
+        await save()
         dismiss()
     }
 
-    private func persistItem(localIdentifier: String?) {
+    private func loadImageSource(_ localIdentifier: String?) async
+        -> ImageSource?
+    {
+        guard let localIdentifier else { return nil }
+
+        if let assetImage = await photoLibraryStore.loadAssetImage(
+            for: localIdentifier
+        ) {
+            return .photo(localIdentifier: localIdentifier, image: assetImage)
+        }
+        if let thumbnail = ThumbnailStore.loadThumbnail(
+            localIdentifier: localIdentifier
+        ) {
+            return .thumbnail(
+                localIdentifier: localIdentifier,
+                image: thumbnail
+            )
+        }
+        return nil
+    }
+
+    private func save() async {
+        let localIdentifier = await saveImage()
+
         if let item {
             item.title = title
             item.timestamp = timestamp
@@ -205,37 +156,24 @@ struct ItemView: View {
         try? modelContext.save()
     }
 
-    private func loadImage() async {
-        if let capturedImage {
-            image = capturedImage
-            isShowingFallback = false
-            return
+    private func saveImage() async -> String? {
+        if item?.localIdentifier == imageSource?.localIdentifier {
+            return item?.localIdentifier
         }
-        let thumbnail = loadThumbnailImage()
-        image = thumbnail
-        let assetImage = await loadAssetImage()
-        if let assetImage {
-            image = assetImage
-            isShowingFallback = false
-        } else {
-            isShowingFallback = (thumbnail != nil) && (localIdentifier != nil)
+        if case .camera(let capturedImage) = imageSource {
+            if let localIdentifier =
+                await photoLibraryStore
+                .saveImageToPhotoLibrary(capturedImage)
+            {
+                await thmbnailStore.saveThumbnail(for: localIdentifier)
+                return localIdentifier
+            }
         }
-    }
-
-    private func loadThumbnailImage() -> UIImage? {
-        let originalLocalIdentifier = item?.localIdentifier
-
-        guard localIdentifier == originalLocalIdentifier,
-            let originalLocalIdentifier
-        else { return nil }
-        return ThumbnailStore.loadThumbnail(
-            localIdentifier: originalLocalIdentifier
-        )
-    }
-
-    private func loadAssetImage() async -> UIImage? {
-        guard let localIdentifier else { return nil }
-        return await photoLibraryStore.loadAssetImage(for: localIdentifier)
+        if case .photo(let localIdentifier, _) = imageSource {
+            await ThumbnailStore.saveThumbnail(for: localIdentifier)
+            return localIdentifier
+        }
+        return nil
     }
 }
 
