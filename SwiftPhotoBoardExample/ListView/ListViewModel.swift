@@ -11,18 +11,21 @@ import SwiftUI
 @Observable
 final class ListViewModel {
     private let modelContext: ModelContext
-    private let thumbnailStore: ThumbnailService
+    private let thumbnailService: ThumbnailService
 
-    init(modelContext: ModelContext, thumbnailStore: ThumbnailService) {
+    init(
+        modelContext: ModelContext,
+        thumbnailStore: ThumbnailService = ThumbnailServiceImpl()
+    ) {
         self.modelContext = modelContext
-        self.thumbnailStore = thumbnailStore
+        self.thumbnailService = thumbnailStore
     }
 
     func deleteItems(items: [Item], offsets: IndexSet) {
         for index in offsets {
             let item = items[index]
             if let localIdentifier = item.localIdentifier {
-                thumbnailStore.deleteThumbnail(localIdentifier: localIdentifier)
+                thumbnailService.deleteThumbnail(localIdentifier: localIdentifier)
             }
             modelContext.delete(item)
             try? modelContext.save()

@@ -82,17 +82,16 @@ extension ItemView {
     }
 
     struct RemoveImageButton: View {
-        let imageSource: ImageSource?
+        let disabled: Bool
         let onRemove: () -> Void
 
         var body: some View {
-            if imageSource != nil {
-                Button(role: .destructive) {
-                    onRemove()
-                } label: {
-                    Label("Delete Photo", systemImage: "trash")
-                }
+            Button(role: .destructive) {
+                onRemove()
+            } label: {
+                Label("Delete Photo", systemImage: "trash")
             }
+            .disabled(disabled)
         }
     }
 

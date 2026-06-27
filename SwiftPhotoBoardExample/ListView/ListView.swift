@@ -10,12 +10,13 @@ import SwiftUI
 
 struct ListView: View {
     @Query(sort: \Item.timestamp, order: .reverse) private var items: [Item]
-    private(set) var viewModel: ListViewModel
+    @State private var viewModel: ListViewModel
+
+    private let thmbnailService = ThumbnailServiceImpl()
 
     init(modelContext: ModelContext) {
-        self.viewModel = ListViewModel(
-            modelContext: modelContext,
-            thumbnailStore: ThumbnailServiceImpl()
+        self._viewModel = State(
+            wrappedValue: ListViewModel(modelContext: modelContext)
         )
     }
 
@@ -26,7 +27,7 @@ struct ListView: View {
                     NavigationLink {
                         ItemView(item: item)
                     } label: {
-                        ListItemView(item: item)
+                        ListRow(item: item, thmbnailService: thmbnailService)
                     }
                 }
                 .onDelete { offsets in
@@ -50,6 +51,40 @@ struct ListView: View {
             }
         } detail: {
             Text("Select an item")
+        }
+    }
+
+    struct ListRow: View {
+        private let item: Item
+        private let thmbnailService: ThumbnailService
+
+        init(
+            item: Item,
+            thmbnailService: ThumbnailService = ThumbnailServiceImpl()
+        ) {
+            self.item = item
+            self.thmbnailService = thmbnailService
+        }
+
+        var body: some View {
+            HStack {
+                ThumbnailImage(localIdentifier: item.localIdentifier)
+                VStack(alignment: .leading) {
+                    Text(item.title)
+                    Text(
+                        item.timestamp,
+                        format: Date.FormatStyle(
+                            date: .numeric,
+                            time: .standard
+                        )
+                    )
+                    if !item.note.isEmpty {
+                        Text(item.note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
         }
     }
 }

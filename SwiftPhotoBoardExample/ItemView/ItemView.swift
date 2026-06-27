@@ -9,28 +9,6 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
-enum ImageSource {
-    case photo(localIdentifier: String, image: UIImage)
-    case thumbnail(localIdentifier: String, image: UIImage)
-    case camera(image: UIImage)
-
-    var localIdentifier: String? {
-        switch self {
-        case .photo(let localIdentifier, _), .thumbnail(let localIdentifier, _):
-            return localIdentifier
-        case .camera:
-            return nil
-        }
-    }
-
-    var image: UIImage {
-        switch self {
-        case .photo(_, let image), .thumbnail(_, let image), .camera(let image):
-            return image
-        }
-    }
-}
-
 struct ItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -79,7 +57,7 @@ struct ItemView: View {
                     Task { await handleSelectPhoto(localIdentifier) }
                 }
                 TakeCameraButton { handleTakeCamera($0) }
-                RemoveImageButton(imageSource: imageSource) {
+                RemoveImageButton(disabled: imageSource == nil) {
                     handleRemoveImage()
                 }
             }
