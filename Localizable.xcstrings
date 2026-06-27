@@ -120,23 +120,6 @@
         }
       }
     },
-    "Please enter a title before saving." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please enter a title before saving."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存する前にタイトルを入力してください。"
-          }
-        }
-      }
-    },
     "Photo Board" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -171,6 +154,23 @@
         }
       }
     },
+    "Please enter a title before saving." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Please enter a title before saving."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存する前にタイトルを入力してください。"
+          }
+        }
+      }
+    },
     "Save" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -187,6 +187,9 @@
           }
         }
       }
+    },
+    "Save error" : {
+
     },
     "Select an item" : {
       "extractionState" : "manual",
@@ -239,23 +242,6 @@
         }
       }
     },
-    "Title is required" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Title is required"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "タイトルが必要です"
-          }
-        }
-      }
-    },
     "Timestamp" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -286,6 +272,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タイトル"
+          }
+        }
+      }
+    },
+    "Title is required" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Title is required"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タイトルが必要です"
           }
         }
       }

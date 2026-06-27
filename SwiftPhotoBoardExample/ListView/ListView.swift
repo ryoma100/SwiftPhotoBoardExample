@@ -43,7 +43,7 @@ struct ListView: View {
                 }
                 ToolbarItem {
                     NavigationLink {
-                        ItemView()
+                        ItemView(item: nil)
                     } label: {
                         Label("Add Item", systemImage: "plus")
                     }

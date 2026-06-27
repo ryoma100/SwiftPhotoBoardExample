@@ -13,59 +13,43 @@ struct ItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    private let item: Item?
-    private let photoLibraryService: PhotoService
-    private let thumbnailService: ThumbnailService
-
-    @State private var title: String
-    @State private var timestamp: Date
-    @State private var note: String
-    @State private var imageSource: ImageSource?
-
-    init(
-        item: Item? = nil,
-        photoLibraryService: PhotoService = PhotoServiceImpl(),
-        thumbnailService: ThumbnailService = ThumbnailServiceImpl()
-    ) {
-        self.item = item
-        self.photoLibraryService = photoLibraryService
-        self.thumbnailService = thumbnailService
-        _title = State(initialValue: item?.title ?? "")
-        _timestamp = State(initialValue: item?.timestamp ?? Date())
-        _note = State(initialValue: item?.note ?? "")
-    }
+    let item: Item?
+    @State private var viewModel: ItemViewModel = ItemViewModel()
+    @State private var isShowingSaveErrorAlert: Bool = false
 
     var body: some View {
         Form {
             ClearableTextField(
                 titleKey: "Title",
-                text: $title,
+                text: $viewModel.title,
                 axis: .horizontal,
                 fieldIdentifier: "Title",
                 clearIdentifier: "ClearTitle"
             )
-            DatePicker("Timestamp", selection: $timestamp)
+            DatePicker("Timestamp", selection: $viewModel.timestamp)
             ClearableTextField(
                 titleKey: "Note",
-                text: $note,
+                text: $viewModel.note,
                 fieldIdentifier: "Note",
                 clearIdentifier: "ClearNote"
             )
             Section("Photo") {
-                ImageOrThumbnail(imageSource: imageSource)
+                ImageOrThumbnail(imageSource: viewModel.imageSource)
                 SelectPhotoButton { localIdentifier in
-                    Task { await handleSelectPhoto(localIdentifier) }
+                    Task { await viewModel.selectPhoto(localIdentifier) }
                 }
-                TakeCameraButton { handleTakeCamera($0) }
-                RemoveImageButton(disabled: imageSource == nil) {
-                    handleRemoveImage()
+                TakeCameraButton { viewModel.takeCamera($0) }
+                RemoveImageButton(disabled: viewModel.imageSource == nil) {
+                    viewModel.removeImage()
                 }
             }
         }
         .navigationTitle(item == nil ? "Add Item" : "Edit Item")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                SaveButton(title: title) { Task { await handleSave() } }
+                SaveButton(title: viewModel.title) {
+                    Task { await handleSave() }
+                }
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -73,90 +57,28 @@ struct ItemView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .task { await handleSelectPhoto(item?.localIdentifier) }
-    }
-
-    private func handleSelectPhoto(_ localIdentifier: String?) async {
-        imageSource = await loadImageSource(localIdentifier)
-    }
-
-    private func handleTakeCamera(_ cameraImage: UIImage) {
-        imageSource = .camera(image: cameraImage)
-    }
-
-    private func handleRemoveImage() {
-        imageSource = nil
+        .alert("Save error", isPresented: $isShowingSaveErrorAlert) {
+            Button("OK", role: .cancel) {}
+        }
+        .task {
+            viewModel = await ItemViewModel(
+                modelContext: modelContext,
+                item: item
+            )
+        }
     }
 
     private func handleSave() async {
-        await save()
-        dismiss()
-    }
-
-    private func loadImageSource(_ localIdentifier: String?) async
-        -> ImageSource?
-    {
-        guard let localIdentifier else { return nil }
-
-        if let assetImage = await photoLibraryService.loadAssetImage(
-            for: localIdentifier,
-            targetSize: CGSize(width: 1024, height: 1024)
-        ) {
-            return .photo(localIdentifier: localIdentifier, image: assetImage)
+        do {
+            try await viewModel.save()
+            dismiss()
+        } catch {
+            isShowingSaveErrorAlert = true
         }
-        if let thumbnail = thumbnailService.loadThumbnail(
-            localIdentifier: localIdentifier
-        ) {
-            return .thumbnail(
-                localIdentifier: localIdentifier,
-                image: thumbnail
-            )
-        }
-        return nil
-    }
-
-    private func save() async {
-        let localIdentifier = await saveImage()
-
-        if let item {
-            item.title = title
-            item.timestamp = timestamp
-            item.note = note
-            item.localIdentifier = localIdentifier
-        } else {
-            let newItem = Item(
-                title: title,
-                timestamp: timestamp,
-                note: note,
-                localIdentifier: localIdentifier
-            )
-            modelContext.insert(newItem)
-        }
-        try? modelContext.save()
-    }
-
-    private func saveImage() async -> String? {
-        if item?.localIdentifier == imageSource?.localIdentifier {
-            return item?.localIdentifier
-        }
-        if case .camera(let capturedImage) = imageSource {
-            if let localIdentifier =
-                await photoLibraryService
-                .saveImageToPhotoLibrary(capturedImage)
-            {
-                await thumbnailService.saveThumbnail(for: localIdentifier)
-                return localIdentifier
-            }
-        }
-        if case .photo(let localIdentifier, _) = imageSource {
-            await thumbnailService.saveThumbnail(for: localIdentifier)
-            return localIdentifier
-        }
-        return nil
     }
 }
 
 #Preview {
     let container = try! makeModelContiner(isStoredInMemoryOnly: true)
-    ItemView().modelContainer(container)
+    ItemView(item: nil).modelContainer(container)
 }
