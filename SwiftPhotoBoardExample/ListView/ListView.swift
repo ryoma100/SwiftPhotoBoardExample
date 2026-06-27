@@ -9,10 +9,10 @@ import SwiftData
 import SwiftUI
 
 struct ListView: View {
-    @Environment(\.modelContext) private var modelContext
-    @State private var viewModel = ListViewModel()
 
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Item.timestamp, order: .reverse) private var items: [Item]
+    @State private var viewModel = ListViewModel()
 
     var body: some View {
         NavigationSplitView {
