@@ -9,16 +9,10 @@ import SwiftData
 import SwiftUI
 
 struct ListView: View {
+    @Environment(\.modelContext) private var modelContext
+    @State private var viewModel = ListViewModel()
+
     @Query(sort: \Item.timestamp, order: .reverse) private var items: [Item]
-    @State private var viewModel: ListViewModel
-
-    private let thmbnailService = ThumbnailServiceImpl()
-
-    init(modelContext: ModelContext) {
-        self._viewModel = State(
-            wrappedValue: ListViewModel(modelContext: modelContext)
-        )
-    }
 
     var body: some View {
         NavigationSplitView {
@@ -27,12 +21,15 @@ struct ListView: View {
                     NavigationLink {
                         ItemView(item: item)
                     } label: {
-                        ListRow(item: item, thmbnailService: thmbnailService)
+                        ListRow(item: item)
                     }
                 }
                 .onDelete { offsets in
                     withAnimation {
-                        viewModel.deleteItems(items: items, offsets: offsets)
+                        try! viewModel.deleteItems(
+                            items: items,
+                            offsets: offsets
+                        )
                     }
                 }
             }
@@ -51,6 +48,9 @@ struct ListView: View {
             }
         } detail: {
             Text("Select an item")
+        }
+        .onAppear {
+            viewModel = ListViewModel(modelContext: modelContext, )
         }
     }
 
@@ -91,6 +91,5 @@ struct ListView: View {
 
 #Preview {
     let container = try! makeModelContiner(isStoredInMemoryOnly: true)
-    ListView(modelContext: container.mainContext)
-        .modelContainer(container)
+    ListView().modelContainer(container)
 }

@@ -34,8 +34,8 @@ enum ImageSource {
 final class ItemViewModel {
     private let thumbnailService: ThumbnailService
     private let phootoService: PhotoService
-
     private let modelContext: ModelContext?
+
     private(set) var item: Item?
     var title: String
     var timestamp: Date
@@ -58,6 +58,7 @@ final class ItemViewModel {
         self.imageSource = await loadImageSource(item?.localIdentifier)
     }
 
+    // Dummy for initialization; not actually used.
     init() {
         self.thumbnailService = ThumbnailServiceImpl()
         self.phootoService = PhotoServiceImpl()

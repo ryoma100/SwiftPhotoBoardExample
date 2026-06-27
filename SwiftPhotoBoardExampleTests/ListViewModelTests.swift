@@ -22,7 +22,7 @@ struct ListViewModelTests {
         let store = ThumbnailServiceMock()
         let viewModel = ListViewModel(
             modelContext: context,
-            thumbnailStore: store
+            thumbnailService: store
         )
 
         let item1 = Item(title: "A", timestamp: Date(timeIntervalSince1970: 1))
@@ -33,7 +33,7 @@ struct ListViewModelTests {
         context.insert(item3)
         try context.save()
 
-        viewModel.deleteItems(
+        try viewModel.deleteItems(
             items: [item1, item2, item3],
             offsets: IndexSet(integer: 1)
         )
@@ -54,7 +54,7 @@ struct ListViewModelTests {
         store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
             modelContext: context,
-            thumbnailStore: store
+            thumbnailService: store
         )
 
         let item = Item(
@@ -65,7 +65,7 @@ struct ListViewModelTests {
         context.insert(item)
         try context.save()
 
-        viewModel.deleteItems(items: [item], offsets: IndexSet(integer: 0))
+        try viewModel.deleteItems(items: [item], offsets: IndexSet(integer: 0))
 
         #expect(deletedIdentifiers == ["id-123"])
     }
@@ -77,14 +77,14 @@ struct ListViewModelTests {
         let store = ThumbnailServiceMock()
         let viewModel = ListViewModel(
             modelContext: context,
-            thumbnailStore: store
+            thumbnailService: store
         )
 
         let item = Item(title: "A", timestamp: Date(timeIntervalSince1970: 1))
         context.insert(item)
         try context.save()
 
-        viewModel.deleteItems(items: [item], offsets: IndexSet(integer: 0))
+        try viewModel.deleteItems(items: [item], offsets: IndexSet(integer: 0))
 
         #expect(store.deleteThumbnailCallCount == 0)
     }
@@ -98,7 +98,7 @@ struct ListViewModelTests {
         store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
             modelContext: context,
-            thumbnailStore: store
+            thumbnailService: store
         )
 
         let item1 = Item(
@@ -121,7 +121,7 @@ struct ListViewModelTests {
         context.insert(item3)
         try context.save()
 
-        viewModel.deleteItems(
+        try viewModel.deleteItems(
             items: [item1, item2, item3],
             offsets: IndexSet([0, 2])
         )
@@ -141,7 +141,7 @@ struct ListViewModelTests {
         store.deleteThumbnailHandler = { deletedIdentifiers.append($0) }
         let viewModel = ListViewModel(
             modelContext: context,
-            thumbnailStore: store
+            thumbnailService: store
         )
 
         let item1 = Item(
@@ -154,7 +154,7 @@ struct ListViewModelTests {
         context.insert(item2)
         try context.save()
 
-        viewModel.deleteItems(
+        try viewModel.deleteItems(
             items: [item1, item2],
             offsets: IndexSet([0, 1])
         )

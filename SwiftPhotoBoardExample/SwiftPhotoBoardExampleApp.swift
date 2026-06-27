@@ -20,7 +20,7 @@ struct SwiftPhotoBoardExampleApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ListView(modelContext: sharedModelContainer.mainContext)
+            ListView()
         }
         .modelContainer(sharedModelContainer)
     }

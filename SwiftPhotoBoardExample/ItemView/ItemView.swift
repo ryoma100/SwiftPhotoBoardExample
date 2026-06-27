@@ -10,12 +10,12 @@ import SwiftData
 import SwiftUI
 
 struct ItemView: View {
+    let item: Item?
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-
-    let item: Item?
-    @State private var viewModel: ItemViewModel = ItemViewModel()
-    @State private var isShowingSaveErrorAlert: Bool = false
+    @State private var viewModel = ItemViewModel()
+    @State private var isShowingSaveErrorAlert = false
 
     var body: some View {
         Form {
