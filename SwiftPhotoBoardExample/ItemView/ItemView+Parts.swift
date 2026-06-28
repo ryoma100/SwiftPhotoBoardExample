@@ -10,10 +10,10 @@ import SwiftUI
 
 extension ItemView {
     struct ImageOrThumbnail: View {
-        let imageSource: ImageSource?
+        let viewModel: ItemViewModel
 
         var body: some View {
-            if let imageSource {
+            if let imageSource = viewModel.imageSource {
                 Image(uiImage: imageSource.image)
                     .resizable()
                     .scaledToFit()
@@ -31,7 +31,7 @@ extension ItemView {
     }
 
     struct SelectPhotoButton: View {
-        let onChangeLocalIdentifier: (String?) -> Void
+        let viewModel: ItemViewModel
 
         @State private var isShowingPhotosPicker: Bool = false
         @State private var pickerItem: PhotosPickerItem?
@@ -49,15 +49,15 @@ extension ItemView {
                 photoLibrary: .shared()
             )
             .onChange(of: pickerItem) { _, newValue in
-                if let identifier = newValue?.itemIdentifier {
-                    onChangeLocalIdentifier(identifier)
+                if let localIdentifier = newValue?.itemIdentifier {
+                    Task { await viewModel.selectPhoto(localIdentifier) }
                 }
             }
         }
     }
 
     struct TakeCameraButton: View {
-        let onTakeCamera: (UIImage) -> Void
+        let viewModel: ItemViewModel
 
         @State private var isShowingCamera: Bool = false
 
@@ -72,7 +72,7 @@ extension ItemView {
                     CameraPicker { image in
                         isShowingCamera = false
                         if let image {
-                            onTakeCamera(image)
+                            viewModel.takeCamera(image)
                         }
                     }
                     .ignoresSafeArea()
@@ -82,27 +82,28 @@ extension ItemView {
     }
 
     struct RemoveImageButton: View {
-        let disabled: Bool
-        let onRemove: () -> Void
+        let viewModel: ItemViewModel
 
         var body: some View {
             Button(role: .destructive) {
-                onRemove()
+                viewModel.removeImage()
             } label: {
                 Label("Delete Photo", systemImage: "trash")
             }
-            .disabled(disabled)
+            .disabled(viewModel.imageSource == nil)
         }
     }
 
     struct SaveButton: View {
-        let title: String
-        let onSave: () -> Void
+        let viewModel: ItemViewModel
+        let onSuccess: () -> Void
 
         @State private var isShowingEmptyTitleAlert: Bool = false
+        @State private var isShowingSaveErrorAlert = false
 
         private var isTitleEmpty: Bool {
-            title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            viewModel.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
         }
 
         var body: some View {
@@ -118,13 +119,24 @@ extension ItemView {
             } message: {
                 Text("Please enter a title before saving.")
             }
+            .alert("Save error", isPresented: $isShowingSaveErrorAlert) {
+                Button("OK", role: .cancel) {}
+            }
         }
 
         private func handleSave() {
             if isTitleEmpty {
                 isShowingEmptyTitleAlert = true
-            } else {
-                onSave()
+                return
+            }
+
+            Task {
+                do {
+                    try await viewModel.save()
+                    onSuccess()
+                } catch {
+                    isShowingSaveErrorAlert = true
+                }
             }
         }
     }

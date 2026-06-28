@@ -15,7 +15,6 @@ struct ItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ItemViewModel()
-    @State private var isShowingSaveErrorAlert = false
 
     var body: some View {
         Form {
@@ -34,22 +33,16 @@ struct ItemView: View {
                 clearIdentifier: "ClearNote"
             )
             Section("Photo") {
-                ImageOrThumbnail(imageSource: viewModel.imageSource)
-                SelectPhotoButton { localIdentifier in
-                    Task { await viewModel.selectPhoto(localIdentifier) }
-                }
-                TakeCameraButton { viewModel.takeCamera($0) }
-                RemoveImageButton(disabled: viewModel.imageSource == nil) {
-                    viewModel.removeImage()
-                }
+                ImageOrThumbnail(viewModel: viewModel)
+                SelectPhotoButton(viewModel: viewModel)
+                TakeCameraButton(viewModel: viewModel)
+                RemoveImageButton(viewModel: viewModel)
             }
         }
         .navigationTitle(item == nil ? "Add Item" : "Edit Item")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                SaveButton(title: viewModel.title) {
-                    Task { await handleSave() }
-                }
+                SaveButton(viewModel: viewModel) { dismiss() }
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -57,23 +50,11 @@ struct ItemView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
-        .alert("Save error", isPresented: $isShowingSaveErrorAlert) {
-            Button("OK", role: .cancel) {}
-        }
         .task {
             viewModel = await ItemViewModel(
                 modelContext: modelContext,
                 item: item
             )
-        }
-    }
-
-    private func handleSave() async {
-        do {
-            try await viewModel.save()
-            dismiss()
-        } catch {
-            isShowingSaveErrorAlert = true
         }
     }
 }

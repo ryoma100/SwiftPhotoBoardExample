@@ -182,10 +182,16 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let editedNote = UUID().uuidString
         noteField.typeText(editedNote)
 
-        // click "Delete Photo" button
+        // dismiss keyboard
+        app.buttons["keyboard.chevron.compact.down"].tap()
+
+        // scroll to reveal "Delete Photo" button
         XCTAssertTrue(
             app.images["CapturedPhoto"].waitForExistence(timeout: 10)
         )
+        app.images["CapturedPhoto"].swipeUp()
+
+        // click "Delete Photo" button
         app.buttons[L(en: "Delete Photo", ja: "写真を削除")].tap()
         XCTAssertFalse(
             app.images["CapturedPhoto"].waitForExistence(timeout: 2)
