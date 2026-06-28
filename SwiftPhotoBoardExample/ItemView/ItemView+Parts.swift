@@ -96,8 +96,8 @@ extension ItemView {
 
     struct SaveButton: View {
         let viewModel: ItemViewModel
-        let onSuccess: () -> Void
 
+        @Environment(\.dismiss) private var dismiss
         @State private var isShowingEmptyTitleAlert: Bool = false
         @State private var isShowingSaveErrorAlert = false
 
@@ -133,7 +133,7 @@ extension ItemView {
             Task {
                 do {
                     try await viewModel.save()
-                    onSuccess()
+                    dismiss()
                 } catch {
                     isShowingSaveErrorAlert = true
                 }

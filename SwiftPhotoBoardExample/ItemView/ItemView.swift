@@ -13,7 +13,6 @@ struct ItemView: View {
     let item: Item?
 
     @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
     @State private var viewModel = ItemViewModel()
 
     var body: some View {
@@ -42,7 +41,7 @@ struct ItemView: View {
         .navigationTitle(item == nil ? "Add Item" : "Edit Item")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                SaveButton(viewModel: viewModel) { dismiss() }
+                SaveButton(viewModel: viewModel)
             }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
