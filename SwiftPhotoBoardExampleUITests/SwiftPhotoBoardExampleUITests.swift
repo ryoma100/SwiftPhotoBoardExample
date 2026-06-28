@@ -61,7 +61,6 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let firstPhoto = app.scrollViews.images.firstMatch
         XCTAssertTrue(firstPhoto.waitForExistence(timeout: 10))
         firstPhoto.tap()
-        allowPhotoLibraryAccessIfNeeded()
         XCTAssertTrue(app.images["CapturedPhoto"].waitForExistence(timeout: 10))
 
         // click Save button
@@ -271,32 +270,5 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
             Thread.sleep(forTimeInterval: 0.2)
         }
         return false
-    }
-
-    @MainActor
-    private func allowPhotoLibraryAccessIfNeeded(timeout: TimeInterval = 5) {
-        let springboard = XCUIApplication(
-            bundleIdentifier: "com.apple.springboard"
-        )
-        let allowLabels = [
-            "Allow Full Access",
-            "Allow Access to All Photos",
-            "フルアクセスを許可",
-            "すべての写真へのアクセスを許可",
-            "OK",
-            "Allow",
-            "許可",
-        ]
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            for label in allowLabels {
-                let button = springboard.buttons[label]
-                if button.exists {
-                    button.tap()
-                    return
-                }
-            }
-            Thread.sleep(forTimeInterval: 0.2)
-        }
     }
 }
