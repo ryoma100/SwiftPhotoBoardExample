@@ -50,10 +50,12 @@ struct ItemView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .task {
-            viewModel = await ItemViewModel(
-                modelContext: modelContext,
-                item: item
-            )
+            if viewModel.modelContext == nil {
+                viewModel = await ItemViewModel(
+                    modelContext: modelContext,
+                    item: item
+                )
+            }
         }
     }
 }

@@ -34,7 +34,7 @@ enum ImageSource {
 final class ItemViewModel {
     private let thumbnailService: ThumbnailService
     private let phootoService: PhotoService
-    private let modelContext: ModelContext?
+    let modelContext: ModelContext?
 
     private(set) var item: Item?
     var title: String
