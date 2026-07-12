@@ -9,23 +9,27 @@ import SwiftData
 import SwiftUI
 
 enum ImageSource {
-    case photo(localIdentifier: String, image: UIImage)
-    case thumbnail(localIdentifier: String, image: UIImage)
-    case camera(image: UIImage)
-
-    var localIdentifier: String? {
-        switch self {
-        case .photo(let localIdentifier, _), .thumbnail(let localIdentifier, _):
-            return localIdentifier
-        case .camera:
-            return nil
-        }
-    }
+    case savedImage(imageFileId: UUID, savedImage: UIImage)
+    case takeCamera(cameraImage: UIImage)
+    case selectedPhoto(photoImage: UIImage, sha256Hash: String)
 
     var image: UIImage {
         switch self {
-        case .photo(_, let image), .thumbnail(_, let image), .camera(let image):
-            return image
+        case .savedImage(_, let savedImage):
+            return savedImage
+        case .takeCamera(let cameraImage):
+            return cameraImage
+        case .selectedPhoto(let photoImage, _):
+            return photoImage
+        }
+    }
+
+    var imageFileId: UUID? {
+        switch self {
+        case .savedImage(let imageFileId, _):
+            return imageFileId
+        default:
+            return nil
         }
     }
 }
@@ -34,112 +38,129 @@ enum ImageSource {
 final class ItemViewModel {
     private let thumbnailService: ThumbnailService
     private let phootoService: PhotoService
+    private let imageService: ImageService
     let modelContext: ModelContext?
 
     private(set) var item: Item?
     var title: String
     var timestamp: Date
     var note: String
-    private(set) var imageSource: ImageSource?
+    var imageSource: ImageSource?
 
     init(
         modelContext: ModelContext,
         item: Item?,
         thumbnailService: ThumbnailService? = nil,
         photoService: PhotoService? = nil,
+        imageService: ImageService? = nil,
     ) async {
         self.thumbnailService = thumbnailService ?? ThumbnailServiceImpl()
         self.phootoService = photoService ?? PhotoServiceImpl()
+        self.imageService = imageService ?? ImageServiceImpl()
         self.modelContext = modelContext
         self.item = item
         self.title = item?.title ?? ""
         self.timestamp = item?.timestamp ?? Date()
         self.note = item?.note ?? ""
-        self.imageSource = await loadImageSource(item?.localIdentifier)
+        self.imageSource = await loadImageSource(item?.imageFileId)
     }
 
     // Dummy for initialization; not actually used.
     init() {
         self.thumbnailService = ThumbnailServiceImpl()
         self.phootoService = PhotoServiceImpl()
+        self.imageService = ImageServiceImpl()
         self.modelContext = nil
         self.title = ""
         self.timestamp = Date()
         self.note = ""
     }
 
-    func selectPhoto(_ localIdentifier: String?) async {
-        imageSource = await loadImageSource(localIdentifier)
+    func selectPhoto(localIdentifier: String) async {
+        guard let loaded = await phootoService.loadPhotoAsset(
+            localIdentifier: localIdentifier
+        ) else { return }
+        imageSource = .selectedPhoto(
+            photoImage: loaded.image,
+            sha256Hash: loaded.sha256Hash
+        )
     }
 
-    func takeCamera(_ cameraImage: UIImage) {
-        imageSource = .camera(image: cameraImage)
+    func takeCamera(image: UIImage) {
+        imageSource = .takeCamera(cameraImage: image)
     }
 
     func removeImage() {
         imageSource = nil
     }
 
-    private func loadImageSource(_ localIdentifier: String?) async
+    private func loadImageSource(_ imageFileId: UUID?) async
         -> ImageSource?
     {
-        guard let localIdentifier else { return nil }
-
-        if let assetImage = await phootoService.loadAssetImage(
-            for: localIdentifier,
-            targetSize: CGSize(width: 1024, height: 1024)
-        ) {
-            return .photo(localIdentifier: localIdentifier, image: assetImage)
+        guard let imageFileId else { return nil }
+        guard let image = imageService.loadImage(fileId: imageFileId) else {
+            return nil
         }
-        if let thumbnail = thumbnailService.loadThumbnail(
-            localIdentifier: localIdentifier
-        ) {
-            return .thumbnail(
-                localIdentifier: localIdentifier,
-                image: thumbnail
-            )
-        }
-        return nil
+        return .savedImage(imageFileId: imageFileId, savedImage: image)
     }
 
     func save() async throws {
         guard let modelContext else { throw SwiftDataError.missingModelContext }
 
-        let localIdentifier = await saveImage()
+        let imageFileId = try await saveImage()
         if let item {
             item.title = title
             item.timestamp = timestamp
             item.note = note
-            item.localIdentifier = localIdentifier
+            item.imageFileId = imageFileId
         } else {
             let newItem = Item(
                 title: title,
                 timestamp: timestamp,
                 note: note,
-                localIdentifier: localIdentifier
+                imageFileId: imageFileId
             )
             modelContext.insert(newItem)
         }
         try modelContext.save()
     }
 
-    private func saveImage() async -> String? {
-        if item?.localIdentifier == imageSource?.localIdentifier {
-            return item?.localIdentifier
+    private func saveImage() async throws -> UUID? {
+        switch imageSource {
+        case .savedImage(let imageFileId, savedImage: _):
+            return imageFileId
+        case .takeCamera(let cameraImage):
+            return try await saveCameraImage(image: cameraImage)
+        case .selectedPhoto(let photoImage, let sha256Hash):
+            return try await savePhotoImage(image: photoImage, sha256Hash: sha256Hash)
+        default:
+            return nil
         }
-        if case .camera(let capturedImage) = imageSource {
-            if let localIdentifier =
-                await phootoService
-                .saveImageToPhotoLibrary(capturedImage)
-            {
-                await thumbnailService.saveThumbnail(for: localIdentifier)
-                return localIdentifier
-            }
+    }
+
+    private func saveCameraImage(image: UIImage) async throws -> UUID? {
+        guard let modelContext else { throw SwiftDataError.missingModelContext }
+
+        let sha256Hash = await phootoService.saveImageToPhotoLibrary(image)
+        let imageFile = ImageFile(sha256Hash: sha256Hash)
+        imageService.saveImage(fileId: imageFile.id, image: image)
+        modelContext.insert(imageFile)
+        return imageFile.id
+    }
+    
+    private func savePhotoImage(image: UIImage, sha256Hash: String) async throws -> UUID? {
+        guard let modelContext else { throw SwiftDataError.missingModelContext }
+
+        let descriptor = FetchDescriptor<ImageFile>(
+            predicate: #Predicate { $0.sha256Hash == sha256Hash }
+        )
+        if let existing = try modelContext.fetch(descriptor).first {
+            return existing.id
         }
-        if case .photo(let localIdentifier, _) = imageSource {
-            await thumbnailService.saveThumbnail(for: localIdentifier)
-            return localIdentifier
-        }
-        return nil
+
+        let imageFile = ImageFile(sha256Hash: sha256Hash)
+        imageService.saveImage(fileId: imageFile.id, image: image)
+        modelContext.insert(imageFile)
+        return imageFile.id
     }
 }

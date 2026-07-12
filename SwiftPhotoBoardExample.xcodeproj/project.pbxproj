@@ -43,6 +43,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2CB69E77300382C8007EC938 /* Exceptions for "SwiftPhotoBoardExample" folder in "SwiftPhotoBoardExample" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2CDA03202FD71498006AC2FD /* SwiftPhotoBoardExample */;
+		};
 		2CF907C12FEAC7B800F40649 /* Exceptions for "SwiftPhotoBoardExampleTests" folder in "SwiftPhotoBoardExample" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -62,6 +69,9 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2CDA03232FD71498006AC2FD /* SwiftPhotoBoardExample */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2CB69E77300382C8007EC938 /* Exceptions for "SwiftPhotoBoardExample" folder in "SwiftPhotoBoardExample" target */,
+			);
 			path = SwiftPhotoBoardExample;
 			sourceTree = "<group>";
 		};
@@ -445,7 +455,9 @@
 				DEVELOPMENT_TEAM = 3U5GLZS3FA;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SwiftPhotoBoardExample/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Photo Board";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow access to your photo library to display the selected photo in the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -484,7 +496,9 @@
 				DEVELOPMENT_TEAM = 3U5GLZS3FA;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SwiftPhotoBoardExample/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Photo Board";
+				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Allow access to your photo library to display the selected photo in the app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

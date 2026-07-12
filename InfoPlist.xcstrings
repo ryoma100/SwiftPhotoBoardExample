@@ -48,18 +48,13 @@
       }
     },
     "NSPhotoLibraryUsageDescription" : {
-      "extractionState" : "manual",
+      "comment" : "Privacy - Photo Library Usage Description",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "new",
             "value" : "Allow access to your photo library to display the selected photo in the app."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選択した写真をアプリ内に表示するために、写真ライブラリへのアクセスを許可してください。"
           }
         }
       }

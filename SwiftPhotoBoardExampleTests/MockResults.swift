@@ -4,23 +4,12 @@
 
 
 
-import Photos
 import UIKit
 
 
 class ThumbnailServiceMock: ThumbnailService {
     init() { }
 
-
-    private(set) var saveThumbnailCallCount = 0
-    var saveThumbnailHandler: ((String) async -> ())?
-    func saveThumbnail(for localIdentifier: String) async {
-        saveThumbnailCallCount += 1
-        if let saveThumbnailHandler = saveThumbnailHandler {
-            await saveThumbnailHandler(localIdentifier)
-        }
-        
-    }
 
     private(set) var deleteThumbnailCallCount = 0
     var deleteThumbnailHandler: ((String) -> ())?
@@ -57,12 +46,12 @@ class PhotoServiceMock: PhotoService {
         return nil
     }
 
-    private(set) var loadAssetImageCallCount = 0
-    var loadAssetImageHandler: ((String, CGSize) async -> UIImage?)?
-    func loadAssetImage(for localIdentifier: String, targetSize: CGSize) async -> UIImage? {
-        loadAssetImageCallCount += 1
-        if let loadAssetImageHandler = loadAssetImageHandler {
-            return await loadAssetImageHandler(localIdentifier, targetSize)
+    private(set) var loadPhotoAssetCallCount = 0
+    var loadPhotoAssetHandler: ((String) async -> (image: UIImage, sha256Hash: String)?)?
+    func loadPhotoAsset(localIdentifier: String) async -> (image: UIImage, sha256Hash: String)? {
+        loadPhotoAssetCallCount += 1
+        if let loadPhotoAssetHandler = loadPhotoAssetHandler {
+            return await loadPhotoAssetHandler(localIdentifier)
         }
         return nil
     }

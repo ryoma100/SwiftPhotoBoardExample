@@ -1,0 +1,181 @@
+//
+//  PhotoLibraryStore.swift
+//  SwiftPhotoBoardExample
+//
+//  Created by Ryouichi Matsuda on 2026/06/09.
+//
+
+import CryptoKit
+import Photos
+import UIKit
+import UniformTypeIdentifiers
+
+/// @mockable
+protocol PhotoService {
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> String?
+    func loadPhotoAsset(localIdentifier: String) async -> (image: UIImage, sha256Hash: String)?
+}
+
+struct PhotoServiceImpl: PhotoService {
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
+        guard await ensureAuthorization() else { return nil }
+        guard let data = heicData(image: image) else { return nil }
+
+        let localIdentifier: String? = await withCheckedContinuation { continuation in
+            var placeholderIdentifier: String?
+            PHPhotoLibrary.shared().performChanges {
+                let request = PHAssetCreationRequest.forAsset()
+                request.addResource(with: .photo, data: data, options: nil)
+                placeholderIdentifier = request.placeholderForCreatedAsset?.localIdentifier
+            } completionHandler: { success, _ in
+                continuation.resume(returning: success ? placeholderIdentifier : nil)
+            }
+        }
+
+        guard let localIdentifier else { return nil }
+        return await sha256OfAsset(localIdentifier: localIdentifier)
+    }
+
+    func loadPhotoAsset(
+        localIdentifier: String
+    ) async -> (image: UIImage, sha256Hash: String)? {
+        guard await ensureAuthorization() else { return nil }
+
+        let fetch = PHAsset.fetchAssets(
+            withLocalIdentifiers: [localIdentifier],
+            options: nil
+        )
+        guard let asset = fetch.firstObject else { return nil }
+        let resources = PHAssetResource.assetResources(for: asset)
+        guard let resource = resources.first(where: { $0.type == .photo })
+            ?? resources.first
+        else { return nil }
+
+        let box = ResourceLoadBox()
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true
+
+        return await withCheckedContinuation { continuation in
+            PHAssetResourceManager.default().requestData(
+                for: resource,
+                options: options,
+                dataReceivedHandler: { chunk in
+                    box.hasher.update(data: chunk)
+                    box.data.append(chunk)
+                },
+                completionHandler: { error in
+                    if error != nil {
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    let hex = box.hasher.finalize().map {
+                        String(format: "%02x", $0)
+                    }
+                    .joined()
+                    guard let image = UIImage(data: box.data) else {
+                        continuation.resume(returning: nil)
+                        return
+                    }
+                    continuation.resume(returning: (image, hex))
+                }
+            )
+        }
+    }
+
+    private func sha256OfAsset(localIdentifier: String) async -> String? {
+        let fetch = PHAsset.fetchAssets(
+            withLocalIdentifiers: [localIdentifier],
+            options: nil
+        )
+        guard let asset = fetch.firstObject else { return nil }
+        let resources = PHAssetResource.assetResources(for: asset)
+        guard let resource = resources.first(where: { $0.type == .photo })
+            ?? resources.first
+        else { return nil }
+
+        let box = SHA256Box()
+        let options = PHAssetResourceRequestOptions()
+        options.isNetworkAccessAllowed = true
+
+        return await withCheckedContinuation { continuation in
+            PHAssetResourceManager.default().requestData(
+                for: resource,
+                options: options,
+                dataReceivedHandler: { chunk in
+                    box.hasher.update(data: chunk)
+                },
+                completionHandler: { error in
+                    if error != nil {
+                        continuation.resume(returning: nil)
+                    } else {
+                        let hex = box.hasher.finalize().map {
+                            String(format: "%02x", $0)
+                        }
+                        .joined()
+                        continuation.resume(returning: hex)
+                    }
+                }
+            )
+        }
+    }
+
+    private func ensureAuthorization() async -> Bool {
+        var status = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+        if status == .notDetermined {
+            status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
+        }
+        return status == .authorized || status == .limited
+    }
+
+    private func heicData(image: UIImage, compressionQuality: CGFloat = 1.0)
+        -> Data?
+    {
+        guard let cgImage = image.cgImage else { return nil }
+        let data = NSMutableData()
+        guard
+            let destination = CGImageDestinationCreateWithData(
+                data,
+                UTType.heic.identifier as CFString,
+                1,
+                nil
+            )
+        else { return nil }
+        let orientation = CGImagePropertyOrientation(image.imageOrientation)
+        let options: [CFString: Any] = [
+            kCGImageDestinationLossyCompressionQuality: compressionQuality,
+            kCGImagePropertyOrientation: orientation.rawValue,
+        ]
+        CGImageDestinationAddImage(
+            destination,
+            cgImage,
+            options as CFDictionary
+        )
+        guard CGImageDestinationFinalize(destination) else { return nil }
+        return data as Data
+    }
+}
+
+private final class SHA256Box: @unchecked Sendable {
+    var hasher = SHA256()
+}
+
+private final class ResourceLoadBox: @unchecked Sendable {
+    var hasher = SHA256()
+    var data = Data()
+}
+
+private extension CGImagePropertyOrientation {
+    init(_ uiOrientation: UIImage.Orientation) {
+        switch uiOrientation {
+        case .up: self = .up
+        case .down: self = .down
+        case .left: self = .left
+        case .right: self = .right
+        case .upMirrored: self = .upMirrored
+        case .downMirrored: self = .downMirrored
+        case .leftMirrored: self = .leftMirrored
+        case .rightMirrored: self = .rightMirrored
+        @unknown default: self = .up
+        }
+    }
+}

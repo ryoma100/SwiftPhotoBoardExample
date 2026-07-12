@@ -5,6 +5,7 @@
 //  Created by Ryouichi Matsuda on 2026/06/25.
 //
 
+import Foundation
 import PhotosUI
 import SwiftUI
 
@@ -18,14 +19,6 @@ extension ItemView {
                     .resizable()
                     .scaledToFit()
                     .accessibilityIdentifier("CapturedPhoto")
-
-                if case .thumbnail = imageSource {
-                    Text(
-                        "Photo from the library is unavailable. Showing thumbnail instead."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
             }
         }
     }
@@ -48,9 +41,11 @@ extension ItemView {
                 matching: .images,
                 photoLibrary: .shared()
             )
-            .onChange(of: pickerItem) { _, newValue in
-                if let localIdentifier = newValue?.itemIdentifier {
-                    Task { await viewModel.selectPhoto(localIdentifier) }
+            .onChange(of: pickerItem) { _, newItem in
+                Task {
+                    if let identifier = newItem?.itemIdentifier {
+                        await viewModel.selectPhoto(localIdentifier: identifier)
+                    }
                 }
             }
         }
@@ -72,7 +67,7 @@ extension ItemView {
                     CameraPicker { image in
                         isShowingCamera = false
                         if let image {
-                            viewModel.takeCamera(image)
+                            viewModel.takeCamera(image: image)
                         }
                     }
                     .ignoresSafeArea()

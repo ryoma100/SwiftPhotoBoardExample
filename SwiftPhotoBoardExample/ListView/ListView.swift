@@ -68,7 +68,6 @@ struct ListView: View {
 
         var body: some View {
             HStack {
-                ThumbnailImage(localIdentifier: item.localIdentifier)
                 VStack(alignment: .leading) {
                     Text(item.title)
                     Text(

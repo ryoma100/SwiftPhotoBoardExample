@@ -32,13 +32,13 @@ final class ListViewModel {
 
         for index in offsets {
             let item = items[index]
-            if let localIdentifier = item.localIdentifier {
-                thumbnailService.deleteThumbnail(
-                    localIdentifier: localIdentifier
-                )
-            }
-            modelContext.delete(item)
-            try modelContext.save()
+//            if let localIdentifier = item.localIdentifier {
+//                thumbnailService.deleteThumbnail(
+//                    localIdentifier: localIdentifier
+//                )
+//            }
+//            modelContext.delete(item)
+//            try modelContext.save()
         }
     }
 }

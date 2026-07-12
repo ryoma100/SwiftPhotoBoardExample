@@ -14,7 +14,7 @@ enum SchemaV1: VersionedSchema {
     }
 
     static var models: [any PersistentModel.Type] {
-        [Item.self]
+        [Item.self, ImageFile.self]
     }
 
     @Model
@@ -26,21 +26,39 @@ enum SchemaV1: VersionedSchema {
         var title: String
         var timestamp: Date
         var note: String
-        var localIdentifier: String?
+        var imageFileId: UUID?
 
         init(
             title: String = "",
             timestamp: Date,
             note: String = "",
-            localIdentifier: String? = nil
+            imageFileId: UUID?
         ) {
             self.id = UUID()
             self.title = title
             self.timestamp = timestamp
             self.note = note
-            self.localIdentifier = localIdentifier
+            self.imageFileId = imageFileId
+        }
+    }
+
+    @Model
+    final class ImageFile {
+        #Unique<ImageFile>([\.id])
+        #Index<ImageFile>([\.sha256Hash])
+
+        /// id for Documents/Images/{id}.heic, Cache/Thumbnails/{id}.heic
+        private(set) var id: UUID
+
+        /// Hash of original photo file
+        var sha256Hash: String?
+
+        init(sha256Hash: String?) {
+            self.id = UUID()
+            self.sha256Hash = sha256Hash
         }
     }
 }
 
 typealias Item = SchemaV1.Item
+typealias ImageFile = SchemaV1.ImageFile
