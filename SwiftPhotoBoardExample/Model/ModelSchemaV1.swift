@@ -1,5 +1,5 @@
 //
-//  VersionedSchema.swift
+//  ModelSchemaV1.swift
 //  SwiftPhotoBoardExample
 //
 //  Created by Ryouichi Matsuda on 2026/06/09.
@@ -59,6 +59,3 @@ enum SchemaV1: VersionedSchema {
         }
     }
 }
-
-typealias Item = SchemaV1.Item
-typealias ImageFile = SchemaV1.ImageFile

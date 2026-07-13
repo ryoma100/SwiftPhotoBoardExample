@@ -17,3 +17,6 @@ enum MigrationPlan: SchemaMigrationPlan {
         []
     }
 }
+
+typealias Item = SchemaV1.Item
+typealias ImageFile = SchemaV1.ImageFile

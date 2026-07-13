@@ -73,9 +73,11 @@ final class ItemViewModel {
     }
 
     func selectPhoto(localIdentifier: String) async {
-        guard let loaded = await phootoService.loadPhotoAsset(
-            localIdentifier: localIdentifier
-        ) else { return }
+        guard
+            let loaded = await phootoService.loadPhotoAsset(
+                localIdentifier: localIdentifier
+            )
+        else { return }
         imageSource = .selectedPhoto(
             photoImage: loaded.image,
             sha256Hash: loaded.sha256Hash
@@ -103,7 +105,9 @@ final class ItemViewModel {
     func save() async throws {
         guard let modelContext else { throw SwiftDataError.missingModelContext }
 
-        let imageFileId = try await saveImage()
+        let oldImageFileId = item?.imageFileId
+        let imageFileId = try await saveImageFile()
+
         if let item {
             item.title = title
             item.timestamp = timestamp
@@ -118,23 +122,34 @@ final class ItemViewModel {
             )
             modelContext.insert(newItem)
         }
+
+        if let oldImageFileId, oldImageFileId != imageFileId,
+            try modelContext.countItems(imageFileId: oldImageFileId) == 0
+        {
+            imageService.deleteImage(fileId: oldImageFileId)
+            try modelContext.deleteImageFile(id: oldImageFileId)
+        }
+
         try modelContext.save()
     }
 
-    private func saveImage() async throws -> UUID? {
+    private func saveImageFile() async throws -> UUID? {
         switch imageSource {
         case .savedImage(let imageFileId, savedImage: _):
             return imageFileId
         case .takeCamera(let cameraImage):
-            return try await saveCameraImage(image: cameraImage)
+            return try await saveCameraImageFile(image: cameraImage)
         case .selectedPhoto(let photoImage, let sha256Hash):
-            return try await savePhotoImage(image: photoImage, sha256Hash: sha256Hash)
+            return try savePhotoImageFile(
+                image: photoImage,
+                sha256Hash: sha256Hash
+            )
         default:
             return nil
         }
     }
 
-    private func saveCameraImage(image: UIImage) async throws -> UUID? {
+    private func saveCameraImageFile(image: UIImage) async throws -> UUID? {
         guard let modelContext else { throw SwiftDataError.missingModelContext }
 
         let sha256Hash = await phootoService.saveImageToPhotoLibrary(image)
@@ -143,15 +158,16 @@ final class ItemViewModel {
         modelContext.insert(imageFile)
         return imageFile.id
     }
-    
-    private func savePhotoImage(image: UIImage, sha256Hash: String) async throws -> UUID? {
+
+    private func savePhotoImageFile(image: UIImage, sha256Hash: String) throws
+        -> UUID?
+    {
         guard let modelContext else { throw SwiftDataError.missingModelContext }
 
-        let descriptor = FetchDescriptor<ImageFile>(
-            predicate: #Predicate { $0.sha256Hash == sha256Hash }
-        )
-        if let existing = try modelContext.fetch(descriptor).first {
-            return existing.id
+        if let imageFile = try modelContext.findImageFile(
+            sha256Hash: sha256Hash
+        ) {
+            return imageFile.id
         }
 
         let imageFile = ImageFile(sha256Hash: sha256Hash)
