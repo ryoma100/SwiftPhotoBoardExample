@@ -1,5 +1,5 @@
 //
-//  PhotoLibraryStore.swift
+//  PhotoLibraryService.swift
 //  SwiftPhotoBoardExample
 //
 //  Created by Ryouichi Matsuda on 2026/06/09.
@@ -11,12 +11,12 @@ import UIKit
 import UniformTypeIdentifiers
 
 /// @mockable
-protocol PhotoService {
+protocol PhotoLibraryService {
     func saveImageToPhotoLibrary(_ image: UIImage) async -> String?
     func loadPhotoAsset(localIdentifier: String) async -> (image: UIImage, sha256Hash: String)?
 }
 
-struct PhotoServiceImpl: PhotoService {
+struct PhotoLibraryServiceImpl: PhotoLibraryService {
     func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
         guard await ensureAuthorization(), let data = heicData(image: image) else { return nil }
 

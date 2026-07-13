@@ -8,7 +8,7 @@
 import SwiftData
 import SwiftUI
 
-private let imageSercice: ImageService = ImageServiceImpl()
+private let imageFileService: ImageFileService = ImageFileServiceImpl()
 private let size: CGFloat = 64
 
 extension ListView {
@@ -21,7 +21,7 @@ extension ListView {
             item: Item,
         ) {
             self.item = item
-            self.thumbnail = imageSercice.loadThumbnail(
+            self.thumbnail = imageFileService.loadThumbnail(
                 fileId: item.imageFileId
             )
         }

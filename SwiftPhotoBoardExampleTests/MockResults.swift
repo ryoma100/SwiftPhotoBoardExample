@@ -10,7 +10,7 @@ import UIKit
 import UniformTypeIdentifiers
 
 
-class ImageServiceMock: ImageService {
+class ImageFileServiceMock: ImageFileService {
     init() { }
 
 
@@ -20,16 +20,6 @@ class ImageServiceMock: ImageService {
         loadImageCallCount += 1
         if let loadImageHandler = loadImageHandler {
             return loadImageHandler(fileId)
-        }
-        return nil
-    }
-
-    private(set) var loadThumbnailCallCount = 0
-    var loadThumbnailHandler: ((UUID?) -> UIImage?)?
-    func loadThumbnail(fileId: UUID?) -> UIImage? {
-        loadThumbnailCallCount += 1
-        if let loadThumbnailHandler = loadThumbnailHandler {
-            return loadThumbnailHandler(fileId)
         }
         return nil
     }
@@ -53,9 +43,19 @@ class ImageServiceMock: ImageService {
         }
         
     }
+
+    private(set) var loadThumbnailCallCount = 0
+    var loadThumbnailHandler: ((UUID?) -> UIImage?)?
+    func loadThumbnail(fileId: UUID?) -> UIImage? {
+        loadThumbnailCallCount += 1
+        if let loadThumbnailHandler = loadThumbnailHandler {
+            return loadThumbnailHandler(fileId)
+        }
+        return nil
+    }
 }
 
-class PhotoServiceMock: PhotoService {
+class PhotoLibraryServiceMock: PhotoLibraryService {
     init() { }
 
 

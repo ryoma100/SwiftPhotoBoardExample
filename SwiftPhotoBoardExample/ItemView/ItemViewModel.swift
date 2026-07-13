@@ -36,8 +36,8 @@ enum ImageSource {
 
 @Observable
 final class ItemViewModel {
-    private let phootoService: PhotoService
-    private let imageService: ImageService
+    private let phootoLibraryService: PhotoLibraryService
+    private let imageFileService: ImageFileService
     let modelContext: ModelContext?
 
     private(set) var item: Item?
@@ -49,11 +49,12 @@ final class ItemViewModel {
     init(
         modelContext: ModelContext,
         item: Item?,
-        photoService: PhotoService? = nil,
-        imageService: ImageService? = nil,
+        photoLibraryService: PhotoLibraryService? = nil,
+        imageFileService: ImageFileService? = nil,
     ) async {
-        self.phootoService = photoService ?? PhotoServiceImpl()
-        self.imageService = imageService ?? ImageServiceImpl()
+        self.phootoLibraryService =
+            photoLibraryService ?? PhotoLibraryServiceImpl()
+        self.imageFileService = imageFileService ?? ImageFileServiceImpl()
         self.modelContext = modelContext
         self.item = item
         self.title = item?.title ?? ""
@@ -64,8 +65,8 @@ final class ItemViewModel {
 
     // Dummy for initialization; not actually used.
     init() {
-        self.phootoService = PhotoServiceImpl()
-        self.imageService = ImageServiceImpl()
+        self.phootoLibraryService = PhotoLibraryServiceImpl()
+        self.imageFileService = ImageFileServiceImpl()
         self.modelContext = nil
         self.title = ""
         self.timestamp = Date()
@@ -74,7 +75,7 @@ final class ItemViewModel {
 
     func selectPhoto(localIdentifier: String) async {
         guard
-            let loaded = await phootoService.loadPhotoAsset(
+            let loaded = await phootoLibraryService.loadPhotoAsset(
                 localIdentifier: localIdentifier
             )
         else { return }
@@ -96,7 +97,7 @@ final class ItemViewModel {
         -> ImageSource?
     {
         guard let imageFileId else { return nil }
-        guard let image = imageService.loadImage(fileId: imageFileId) else {
+        guard let image = imageFileService.loadImage(fileId: imageFileId) else {
             return nil
         }
         return .savedImage(imageFileId: imageFileId, savedImage: image)
@@ -126,7 +127,7 @@ final class ItemViewModel {
         if let oldImageFileId, oldImageFileId != imageFileId,
             try modelContext.countItems(imageFileId: oldImageFileId) == 0
         {
-            imageService.deleteImage(fileId: oldImageFileId)
+            imageFileService.deleteImage(fileId: oldImageFileId)
             try modelContext.deleteImageFile(id: oldImageFileId)
         }
 
@@ -152,9 +153,11 @@ final class ItemViewModel {
     private func saveCameraImageFile(image: UIImage) async throws -> UUID? {
         guard let modelContext else { throw SwiftDataError.missingModelContext }
 
-        let sha256Hash = await phootoService.saveImageToPhotoLibrary(image)
+        let sha256Hash = await phootoLibraryService.saveImageToPhotoLibrary(
+            image
+        )
         let imageFile = ImageFile(sha256Hash: sha256Hash)
-        imageService.saveImage(fileId: imageFile.id, image: image)
+        imageFileService.saveImage(fileId: imageFile.id, image: image)
         modelContext.insert(imageFile)
         return imageFile.id
     }
@@ -171,7 +174,7 @@ final class ItemViewModel {
         }
 
         let imageFile = ImageFile(sha256Hash: sha256Hash)
-        imageService.saveImage(fileId: imageFile.id, image: image)
+        imageFileService.saveImage(fileId: imageFile.id, image: image)
         modelContext.insert(imageFile)
         return imageFile.id
     }

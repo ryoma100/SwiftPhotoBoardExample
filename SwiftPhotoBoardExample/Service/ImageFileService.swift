@@ -1,5 +1,5 @@
 //
-//  ImageService.swift
+//  ImageFileService.swift
 //  SwiftPhotoBoardExample
 //
 //  Created by Ryouichi Matsuda on 2026/07/11.
@@ -9,11 +9,11 @@ import Photos
 import UIKit
 
 /// @mockable
-protocol ImageService {
+protocol ImageFileService {
     func loadImage(fileId: UUID) -> UIImage?
-    func loadThumbnail(fileId: UUID?) -> UIImage?
     func saveImage(fileId: UUID, image: UIImage)
     func deleteImage(fileId: UUID)
+    func loadThumbnail(fileId: UUID?) -> UIImage?
 }
 
 let imageDirectory: URL = {
@@ -31,7 +31,7 @@ let thumbnailDirectory: URL = {
     .appendingPathComponent("Thumbnails")
 }()
 
-struct ImageServiceImpl: ImageService {
+struct ImageFileServiceImpl: ImageFileService {
     func loadImage(fileId: UUID) -> UIImage? {
         let fileURL =
             imageDirectory

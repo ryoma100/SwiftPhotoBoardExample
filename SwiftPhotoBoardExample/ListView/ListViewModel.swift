@@ -11,20 +11,20 @@ import SwiftUI
 @Observable
 final class ListViewModel {
     private let modelContext: ModelContext?
-    private let imageService: ImageService
+    private let imageFileService: ImageFileService
 
     init(
         modelContext: ModelContext,
-        imageService: ImageService = ImageServiceImpl()
+        imageFileService: ImageFileService = ImageFileServiceImpl()
     ) {
         self.modelContext = modelContext
-        self.imageService = imageService
+        self.imageFileService = imageFileService
     }
 
     // Dummy for initialization; not actually used.
     init() {
         self.modelContext = nil
-        self.imageService = ImageServiceImpl()
+        self.imageFileService = ImageFileServiceImpl()
     }
 
     func deleteItems(items: [Item], offsets: IndexSet) throws {
@@ -37,7 +37,7 @@ final class ListViewModel {
             if let imageFileId = item.imageFileId,
                 try modelContext.countItems(imageFileId: imageFileId) == 0
             {
-                imageService.deleteImage(fileId: imageFileId)
+                imageFileService.deleteImage(fileId: imageFileId)
                 try modelContext.deleteImageFile(id: imageFileId)
             }
             try modelContext.save()
