@@ -50,24 +50,22 @@ struct ListView: View {
             Text("Select an item")
         }
         .onAppear {
-            viewModel = ListViewModel(modelContext: modelContext, )
+            viewModel = ListViewModel(modelContext: modelContext)
         }
     }
 
     struct ListRow: View {
         private let item: Item
-        private let thmbnailService: ThumbnailService
 
         init(
             item: Item,
-            thmbnailService: ThumbnailService = ThumbnailServiceImpl()
         ) {
             self.item = item
-            self.thmbnailService = thmbnailService
         }
 
         var body: some View {
             HStack {
+                ThumbnailImage(imageFileId: item.imageFileId)
                 VStack(alignment: .leading) {
                     Text(item.title)
                     Text(

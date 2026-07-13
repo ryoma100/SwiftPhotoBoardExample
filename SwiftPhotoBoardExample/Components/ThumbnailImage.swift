@@ -7,22 +7,13 @@
 
 import SwiftUI
 
+private let imageSercice: ImageService = ImageServiceImpl()
+private let size: CGFloat = 64
+
 struct ThumbnailImage: View {
-    let localIdentifier: String?
-    private let size: CGFloat
-    private let thmbnailService: ThumbnailService
+    let imageFileId: UUID?
 
     @State private var image: UIImage?
-
-    init(
-        localIdentifier: String?,
-        size: CGFloat = 64,
-        thmbnailStore: ThumbnailService = ThumbnailServiceImpl()
-    ) {
-        self.localIdentifier = localIdentifier
-        self.size = size
-        self.thmbnailService = thmbnailStore
-    }
 
     var body: some View {
         Group {
@@ -38,16 +29,14 @@ struct ThumbnailImage: View {
         .frame(width: size, height: size)
         .background(Color(.secondarySystemBackground))
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .task(id: localIdentifier) {
-            await loadThumbnail()
+        .task(id: imageFileId) {
+            loadThumbnail()
         }
     }
 
-    private func loadThumbnail() async {
-        if let localIdentifier {
-            image = thmbnailService.loadThumbnail(
-                localIdentifier: localIdentifier
-            )
+    private func loadThumbnail() {
+        if let imageFileId {
+            image = imageSercice.loadThumbnail(fileId: imageFileId)
         } else {
             image = nil
         }

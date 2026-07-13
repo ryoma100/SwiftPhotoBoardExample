@@ -36,7 +36,6 @@ enum ImageSource {
 
 @Observable
 final class ItemViewModel {
-    private let thumbnailService: ThumbnailService
     private let phootoService: PhotoService
     private let imageService: ImageService
     let modelContext: ModelContext?
@@ -50,11 +49,9 @@ final class ItemViewModel {
     init(
         modelContext: ModelContext,
         item: Item?,
-        thumbnailService: ThumbnailService? = nil,
         photoService: PhotoService? = nil,
         imageService: ImageService? = nil,
     ) async {
-        self.thumbnailService = thumbnailService ?? ThumbnailServiceImpl()
         self.phootoService = photoService ?? PhotoServiceImpl()
         self.imageService = imageService ?? ImageServiceImpl()
         self.modelContext = modelContext
@@ -67,7 +64,6 @@ final class ItemViewModel {
 
     // Dummy for initialization; not actually used.
     init() {
-        self.thumbnailService = ThumbnailServiceImpl()
         self.phootoService = PhotoServiceImpl()
         self.imageService = ImageServiceImpl()
         self.modelContext = nil

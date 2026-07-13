@@ -18,40 +18,41 @@ protocol PhotoService {
 
 struct PhotoServiceImpl: PhotoService {
     func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
-        guard await ensureAuthorization() else { return nil }
-        guard let data = heicData(image: image) else { return nil }
+        guard await ensureAuthorization(), let data = heicData(image: image) else { return nil }
 
         let localIdentifier: String? = await withCheckedContinuation { continuation in
-            var placeholderIdentifier: String?
+            var placeholder: String?
             PHPhotoLibrary.shared().performChanges {
                 let request = PHAssetCreationRequest.forAsset()
                 request.addResource(with: .photo, data: data, options: nil)
-                placeholderIdentifier = request.placeholderForCreatedAsset?.localIdentifier
+                placeholder = request.placeholderForCreatedAsset?.localIdentifier
             } completionHandler: { success, _ in
-                continuation.resume(returning: success ? placeholderIdentifier : nil)
+                continuation.resume(returning: success ? placeholder : nil)
             }
         }
 
         guard let localIdentifier else { return nil }
-        return await sha256OfAsset(localIdentifier: localIdentifier)
+        return await loadResourceData(localIdentifier: localIdentifier)?.sha256
     }
 
     func loadPhotoAsset(
         localIdentifier: String
     ) async -> (image: UIImage, sha256Hash: String)? {
-        guard await ensureAuthorization() else { return nil }
+        guard await ensureAuthorization(),
+              let result = await loadResourceData(localIdentifier: localIdentifier),
+              let image = UIImage(data: result.data)
+        else { return nil }
+        return (image, result.sha256)
+    }
 
-        let fetch = PHAsset.fetchAssets(
-            withLocalIdentifiers: [localIdentifier],
-            options: nil
-        )
+    private func loadResourceData(localIdentifier: String) async -> (data: Data, sha256: String)? {
+        let fetch = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
         guard let asset = fetch.firstObject else { return nil }
         let resources = PHAssetResource.assetResources(for: asset)
-        guard let resource = resources.first(where: { $0.type == .photo })
-            ?? resources.first
+        guard let resource = resources.first(where: { $0.type == .photo }) ?? resources.first
         else { return nil }
 
-        let box = ResourceLoadBox()
+        let box = LoadBox()
         let options = PHAssetResourceRequestOptions()
         options.isNetworkAccessAllowed = true
 
@@ -64,56 +65,12 @@ struct PhotoServiceImpl: PhotoService {
                     box.data.append(chunk)
                 },
                 completionHandler: { error in
-                    if error != nil {
+                    guard error == nil else {
                         continuation.resume(returning: nil)
                         return
                     }
-                    let hex = box.hasher.finalize().map {
-                        String(format: "%02x", $0)
-                    }
-                    .joined()
-                    guard let image = UIImage(data: box.data) else {
-                        continuation.resume(returning: nil)
-                        return
-                    }
-                    continuation.resume(returning: (image, hex))
-                }
-            )
-        }
-    }
-
-    private func sha256OfAsset(localIdentifier: String) async -> String? {
-        let fetch = PHAsset.fetchAssets(
-            withLocalIdentifiers: [localIdentifier],
-            options: nil
-        )
-        guard let asset = fetch.firstObject else { return nil }
-        let resources = PHAssetResource.assetResources(for: asset)
-        guard let resource = resources.first(where: { $0.type == .photo })
-            ?? resources.first
-        else { return nil }
-
-        let box = SHA256Box()
-        let options = PHAssetResourceRequestOptions()
-        options.isNetworkAccessAllowed = true
-
-        return await withCheckedContinuation { continuation in
-            PHAssetResourceManager.default().requestData(
-                for: resource,
-                options: options,
-                dataReceivedHandler: { chunk in
-                    box.hasher.update(data: chunk)
-                },
-                completionHandler: { error in
-                    if error != nil {
-                        continuation.resume(returning: nil)
-                    } else {
-                        let hex = box.hasher.finalize().map {
-                            String(format: "%02x", $0)
-                        }
-                        .joined()
-                        continuation.resume(returning: hex)
-                    }
+                    let hex = box.hasher.finalize().map { String(format: "%02x", $0) }.joined()
+                    continuation.resume(returning: (box.data, hex))
                 }
             )
         }
@@ -127,39 +84,24 @@ struct PhotoServiceImpl: PhotoService {
         return status == .authorized || status == .limited
     }
 
-    private func heicData(image: UIImage, compressionQuality: CGFloat = 1.0)
-        -> Data?
-    {
+    private func heicData(image: UIImage, compressionQuality: CGFloat = 1.0) -> Data? {
         guard let cgImage = image.cgImage else { return nil }
         let data = NSMutableData()
-        guard
-            let destination = CGImageDestinationCreateWithData(
-                data,
-                UTType.heic.identifier as CFString,
-                1,
-                nil
-            )
-        else { return nil }
+        guard let destination = CGImageDestinationCreateWithData(
+            data, UTType.heic.identifier as CFString, 1, nil
+        ) else { return nil }
         let orientation = CGImagePropertyOrientation(image.imageOrientation)
         let options: [CFString: Any] = [
             kCGImageDestinationLossyCompressionQuality: compressionQuality,
             kCGImagePropertyOrientation: orientation.rawValue,
         ]
-        CGImageDestinationAddImage(
-            destination,
-            cgImage,
-            options as CFDictionary
-        )
+        CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
         guard CGImageDestinationFinalize(destination) else { return nil }
         return data as Data
     }
 }
 
-private final class SHA256Box: @unchecked Sendable {
-    var hasher = SHA256()
-}
-
-private final class ResourceLoadBox: @unchecked Sendable {
+private final class LoadBox: @unchecked Sendable {
     var hasher = SHA256()
     var data = Data()
 }

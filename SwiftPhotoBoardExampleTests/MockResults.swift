@@ -4,31 +4,44 @@
 
 
 
+import CryptoKit
+import Photos
 import UIKit
+import UniformTypeIdentifiers
 
 
-class ThumbnailServiceMock: ThumbnailService {
+class ImageServiceMock: ImageService {
     init() { }
 
 
-    private(set) var deleteThumbnailCallCount = 0
-    var deleteThumbnailHandler: ((String) -> ())?
-    func deleteThumbnail(localIdentifier: String) {
-        deleteThumbnailCallCount += 1
-        if let deleteThumbnailHandler = deleteThumbnailHandler {
-            deleteThumbnailHandler(localIdentifier)
+    private(set) var loadImageCallCount = 0
+    var loadImageHandler: ((UUID) -> UIImage?)?
+    func loadImage(fileId: UUID) -> UIImage? {
+        loadImageCallCount += 1
+        if let loadImageHandler = loadImageHandler {
+            return loadImageHandler(fileId)
         }
-        
+        return nil
     }
 
     private(set) var loadThumbnailCallCount = 0
-    var loadThumbnailHandler: ((String) -> UIImage?)?
-    func loadThumbnail(localIdentifier: String) -> UIImage? {
+    var loadThumbnailHandler: ((UUID) -> UIImage?)?
+    func loadThumbnail(fileId: UUID) -> UIImage? {
         loadThumbnailCallCount += 1
         if let loadThumbnailHandler = loadThumbnailHandler {
-            return loadThumbnailHandler(localIdentifier)
+            return loadThumbnailHandler(fileId)
         }
         return nil
+    }
+
+    private(set) var saveImageCallCount = 0
+    var saveImageHandler: ((UUID, UIImage) -> ())?
+    func saveImage(fileId: UUID, image: UIImage) {
+        saveImageCallCount += 1
+        if let saveImageHandler = saveImageHandler {
+            saveImageHandler(fileId, image)
+        }
+        
     }
 }
 

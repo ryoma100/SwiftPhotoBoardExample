@@ -11,20 +11,20 @@ import SwiftUI
 @Observable
 final class ListViewModel {
     private let modelContext: ModelContext?
-    private let thumbnailService: ThumbnailService
+    private let imageService: ImageService
 
     init(
         modelContext: ModelContext,
-        thumbnailService: ThumbnailService? = nil,
+        imageService: ImageService = ImageServiceImpl()
     ) {
         self.modelContext = modelContext
-        self.thumbnailService = thumbnailService ?? ThumbnailServiceImpl()
+        self.imageService = imageService
     }
 
     // Dummy for initialization; not actually used.
     init() {
         self.modelContext = nil
-        self.thumbnailService = ThumbnailServiceImpl()
+        self.imageService = ImageServiceImpl()
     }
 
     func deleteItems(items: [Item], offsets: IndexSet) throws {
