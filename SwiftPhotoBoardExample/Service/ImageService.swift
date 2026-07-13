@@ -11,8 +11,9 @@ import UIKit
 /// @mockable
 protocol ImageService {
     func loadImage(fileId: UUID) -> UIImage?
-    func loadThumbnail(fileId: UUID) -> UIImage?
+    func loadThumbnail(fileId: UUID?) -> UIImage?
     func saveImage(fileId: UUID, image: UIImage)
+    func deleteImage(fileId: UUID)
 }
 
 let imageDirectory: URL = {
@@ -40,7 +41,8 @@ struct ImageServiceImpl: ImageService {
         return UIImage(data: data)
     }
 
-    func loadThumbnail(fileId: UUID) -> UIImage? {
+    func loadThumbnail(fileId: UUID?) -> UIImage? {
+        guard let fileId else { return nil }
         let fileURL =
             thumbnailDirectory
             .appending(path: fileId.uuidString, directoryHint: .notDirectory)
@@ -120,5 +122,19 @@ struct ImageServiceImpl: ImageService {
         )
         guard CGImageDestinationFinalize(destination) else { return nil }
         return data as Data
+    }
+    
+    func deleteImage(fileId: UUID) {
+        let imageURL =
+            imageDirectory
+            .appending(path: fileId.uuidString, directoryHint: .notDirectory)
+            .appendingPathExtension("heic")
+        try? FileManager.default.removeItem(at: imageURL)
+
+        let thumbnailURL =
+            thumbnailDirectory
+            .appending(path: fileId.uuidString, directoryHint: .notDirectory)
+            .appendingPathExtension("heic")
+        try? FileManager.default.removeItem(at: thumbnailURL)
     }
 }

@@ -25,8 +25,8 @@ class ImageServiceMock: ImageService {
     }
 
     private(set) var loadThumbnailCallCount = 0
-    var loadThumbnailHandler: ((UUID) -> UIImage?)?
-    func loadThumbnail(fileId: UUID) -> UIImage? {
+    var loadThumbnailHandler: ((UUID?) -> UIImage?)?
+    func loadThumbnail(fileId: UUID?) -> UIImage? {
         loadThumbnailCallCount += 1
         if let loadThumbnailHandler = loadThumbnailHandler {
             return loadThumbnailHandler(fileId)
@@ -40,6 +40,16 @@ class ImageServiceMock: ImageService {
         saveImageCallCount += 1
         if let saveImageHandler = saveImageHandler {
             saveImageHandler(fileId, image)
+        }
+        
+    }
+
+    private(set) var deleteImageCallCount = 0
+    var deleteImageHandler: ((UUID) -> ())?
+    func deleteImage(fileId: UUID) {
+        deleteImageCallCount += 1
+        if let deleteImageHandler = deleteImageHandler {
+            deleteImageHandler(fileId)
         }
         
     }

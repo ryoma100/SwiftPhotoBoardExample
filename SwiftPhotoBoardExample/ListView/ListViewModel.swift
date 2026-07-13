@@ -32,13 +32,22 @@ final class ListViewModel {
 
         for index in offsets {
             let item = items[index]
-//            if let localIdentifier = item.localIdentifier {
-//                thumbnailService.deleteThumbnail(
-//                    localIdentifier: localIdentifier
-//                )
-//            }
-//            modelContext.delete(item)
-//            try modelContext.save()
+            modelContext.delete(item)
+
+            if let imageFileId = item.imageFileId,
+                try modelContext.fetch(
+                    FetchDescriptor<Item>(
+                        predicate: #Predicate { $0.imageFileId == imageFileId }
+                    )
+                ).count == 0
+            {
+                imageService.deleteImage(fileId: imageFileId)
+                try modelContext.delete(
+                    model: ImageFile.self,
+                    where: #Predicate { $0.id == imageFileId }
+                )
+            }
+            try modelContext.save()
         }
     }
 }
