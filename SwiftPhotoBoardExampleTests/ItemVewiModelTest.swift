@@ -15,14 +15,25 @@ import UIKit
 @MainActor
 struct ItemViewModelTests {
 
+    let container: ModelContainer
+    let context: ModelContext
+    let photoLibraryService: PhotoLibraryServiceMock
+    let imageFileService: ImageFileServiceMock
+
+    init() throws {
+        container = try makeModelContiner(isStoredInMemoryOnly: true)
+        context = container.mainContext
+        photoLibraryService = PhotoLibraryServiceMock()
+        imageFileService = ImageFileServiceMock()
+    }
+
     @Test
     func initWithNilItemSetsDefaults() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
         let viewModel = await ItemViewModel(
-            modelContext: container.mainContext,
+            modelContext: context,
             item: nil,
-            photoLibraryService: PhotoLibraryServiceMock(),
-            imageFileService: ImageFileServiceMock()
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
 
         #expect(viewModel.item == nil)
@@ -33,8 +44,6 @@ struct ItemViewModelTests {
 
     @Test
     func initWithItemCopiesProperties() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
         let timestamp = Date(timeIntervalSince1970: 100)
         let item = Item(
             title: "Title",
@@ -47,8 +56,8 @@ struct ItemViewModelTests {
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: item,
-            photoLibraryService: PhotoLibraryServiceMock(),
-            imageFileService: ImageFileServiceMock()
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
 
         #expect(viewModel.item === item)
@@ -60,8 +69,6 @@ struct ItemViewModelTests {
 
     @Test
     func initLoadsSavedImageWhenImageFileIdIsPresent() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let imageFileService = ImageFileServiceMock()
         let expectedImage = makeImage()
         imageFileService.loadImageHandler = { _ in expectedImage }
 
@@ -73,9 +80,9 @@ struct ItemViewModelTests {
         )
 
         let viewModel = await ItemViewModel(
-            modelContext: container.mainContext,
+            modelContext: context,
             item: item,
-            photoLibraryService: PhotoLibraryServiceMock(),
+            photoLibraryService: photoLibraryService,
             imageFileService: imageFileService
         )
 
@@ -90,9 +97,6 @@ struct ItemViewModelTests {
 
     @Test
     func initLeavesImageSourceNilWhenLoadImageReturnsNil() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let imageFileService = ImageFileServiceMock()
-
         let item = Item(
             title: "Title",
             timestamp: Date(timeIntervalSince1970: 1),
@@ -100,9 +104,9 @@ struct ItemViewModelTests {
         )
 
         let viewModel = await ItemViewModel(
-            modelContext: container.mainContext,
+            modelContext: context,
             item: item,
-            photoLibraryService: PhotoLibraryServiceMock(),
+            photoLibraryService: photoLibraryService,
             imageFileService: imageFileService
         )
 
@@ -112,18 +116,16 @@ struct ItemViewModelTests {
 
     @Test
     func selectPhotoSetsImageSource() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let photoLibraryService = PhotoLibraryServiceMock()
         let expectedImage = makeImage()
         photoLibraryService.loadPhotoAssetHandler = { _ in
             (image: expectedImage, sha256Hash: "hash")
         }
 
         let viewModel = await ItemViewModel(
-            modelContext: container.mainContext,
+            modelContext: context,
             item: nil,
             photoLibraryService: photoLibraryService,
-            imageFileService: ImageFileServiceMock()
+            imageFileService: imageFileService
         )
 
         await viewModel.selectPhoto(localIdentifier: "local-id")
@@ -139,13 +141,11 @@ struct ItemViewModelTests {
 
     @Test
     func selectPhotoLeavesImageSourceUnchangedWhenAssetMissing() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-
         let viewModel = await ItemViewModel(
-            modelContext: container.mainContext,
+            modelContext: context,
             item: nil,
-            photoLibraryService: PhotoLibraryServiceMock(),
-            imageFileService: ImageFileServiceMock()
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
 
         await viewModel.selectPhoto(localIdentifier: "missing")
@@ -155,14 +155,13 @@ struct ItemViewModelTests {
 
     @Test
     func takeCameraSetsImageSource() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
         let image = makeImage()
 
         let viewModel = await ItemViewModel(
-            modelContext: container.mainContext,
+            modelContext: context,
             item: nil,
-            photoLibraryService: PhotoLibraryServiceMock(),
-            imageFileService: ImageFileServiceMock()
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
 
         viewModel.takeCamera(image: image)
@@ -176,13 +175,11 @@ struct ItemViewModelTests {
 
     @Test
     func removeImageClearsImageSource() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-
         let viewModel = await ItemViewModel(
-            modelContext: container.mainContext,
+            modelContext: context,
             item: nil,
-            photoLibraryService: PhotoLibraryServiceMock(),
-            imageFileService: ImageFileServiceMock()
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
         viewModel.takeCamera(image: makeImage())
 
@@ -202,14 +199,11 @@ struct ItemViewModelTests {
 
     @Test
     func saveInsertsNewItemWithoutImage() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: nil,
-            photoLibraryService: PhotoLibraryServiceMock(),
-            imageFileService: ImageFileServiceMock()
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
         viewModel.title = "New"
         viewModel.timestamp = Date(timeIntervalSince1970: 42)
@@ -229,10 +223,6 @@ struct ItemViewModelTests {
 
     @Test
     func saveInsertsNewItemWithCameraImage() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let imageFileService = ImageFileServiceMock()
-        let photoLibraryService = PhotoLibraryServiceMock()
         photoLibraryService.saveImageToPhotoLibraryHandler = { _ in "camera-hash" }
 
         var saveImageArgs: [(UUID, UIImage)] = []
@@ -262,14 +252,10 @@ struct ItemViewModelTests {
 
     @Test
     func saveInsertsNewItemWithPhotoImageCreatesImageFile() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let imageFileService = ImageFileServiceMock()
-
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: nil,
-            photoLibraryService: PhotoLibraryServiceMock(),
+            photoLibraryService: photoLibraryService,
             imageFileService: imageFileService
         )
         viewModel.imageSource = .selectedPhoto(
@@ -290,10 +276,6 @@ struct ItemViewModelTests {
 
     @Test
     func saveInsertsNewItemWithPhotoImageReusesExistingImageFile() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let imageFileService = ImageFileServiceMock()
-
         let existingImageFile = ImageFile(sha256Hash: "photo-hash")
         let existingId = existingImageFile.id
         context.insert(existingImageFile)
@@ -302,7 +284,7 @@ struct ItemViewModelTests {
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: nil,
-            photoLibraryService: PhotoLibraryServiceMock(),
+            photoLibraryService: photoLibraryService,
             imageFileService: imageFileService
         )
         viewModel.imageSource = .selectedPhoto(
@@ -322,9 +304,6 @@ struct ItemViewModelTests {
 
     @Test
     func saveUpdatesExistingItemFields() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-
         let item = Item(
             title: "Old",
             timestamp: Date(timeIntervalSince1970: 1),
@@ -337,8 +316,8 @@ struct ItemViewModelTests {
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: item,
-            photoLibraryService: PhotoLibraryServiceMock(),
-            imageFileService: ImageFileServiceMock()
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
         viewModel.title = "New"
         viewModel.note = "NewNote"
@@ -356,9 +335,6 @@ struct ItemViewModelTests {
 
     @Test
     func saveDeletesOldImageWhenNoOtherItemReferences() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let imageFileService = ImageFileServiceMock()
         imageFileService.loadImageHandler = { _ in UIImage() }
 
         let oldImageFile = ImageFile(sha256Hash: "old-hash")
@@ -378,7 +354,7 @@ struct ItemViewModelTests {
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: item,
-            photoLibraryService: PhotoLibraryServiceMock(),
+            photoLibraryService: photoLibraryService,
             imageFileService: imageFileService
         )
         viewModel.imageSource = .selectedPhoto(
@@ -397,9 +373,6 @@ struct ItemViewModelTests {
 
     @Test
     func saveKeepsOldImageWhenOtherItemStillReferences() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let imageFileService = ImageFileServiceMock()
         imageFileService.loadImageHandler = { _ in UIImage() }
 
         let oldImageFile = ImageFile(sha256Hash: "old-hash")
@@ -422,7 +395,7 @@ struct ItemViewModelTests {
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: item1,
-            photoLibraryService: PhotoLibraryServiceMock(),
+            photoLibraryService: photoLibraryService,
             imageFileService: imageFileService
         )
         viewModel.imageSource = .selectedPhoto(
