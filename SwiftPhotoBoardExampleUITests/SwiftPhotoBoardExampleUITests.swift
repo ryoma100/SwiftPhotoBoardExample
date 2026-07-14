@@ -27,9 +27,6 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         try _testEditSaveItem(app, cellCount)
         try _testDeleteItem(app, cellCount)
 
-        // Wait for SwiftData auto commit
-        //Thread.sleep(forTimeInterval: 10)
-
         app.terminate()
     }
 
@@ -54,13 +51,16 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let note = UUID().uuidString
         noteField.typeText(note)
 
+        // dismiss keyboard
+        app.buttons["keyboard.chevron.compact.down"].tap()
+
         // click "Select Photo" button
         app.buttons[L(en: "Select Photo", ja: "写真を選択")].tap()
 
         // click First Photo
-        let firstPhoto = app.scrollViews.images.firstMatch
-        XCTAssertTrue(firstPhoto.waitForExistence(timeout: 10))
-        firstPhoto.tap()
+        let firstPhoto = firstPickerPhoto(in: app, timeout: 10)
+        XCTAssertNotNil(firstPhoto, "First photo not found")
+        firstPhoto?.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         XCTAssertTrue(app.images["CapturedPhoto"].waitForExistence(timeout: 10))
 
         // click Save button
@@ -110,8 +110,19 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
         let modifiedNote = UUID().uuidString
         noteField.typeText(modifiedNote)
 
+        // dismiss keyboard
+        let keyboardDown = app.buttons["keyboard.chevron.compact.down"]
+        if keyboardDown.exists {
+            keyboardDown.tap()
+        }
+
+        // scroll down to reveal "Take Photo" button
+        app.swipeUp()
+
         // click "Take Photo" button
-        app.buttons[L(en: "Take Photo", ja: "写真を撮影")].tap()
+        let takePhotoButton = app.buttons[L(en: "Take Photo", ja: "写真を撮影")]
+        scrollUntilVisible(takePhotoButton, in: app, maxSwipes: 5)
+        takePhotoButton.tap()
         let shutter = app.buttons["PhotoCapture"]
         XCTAssertTrue(shutter.waitForExistence(timeout: 10))
         shutter.tap()
@@ -264,6 +275,39 @@ final class SwiftPhotoBoardExampleUITests: XCTestCase {
             Thread.sleep(forTimeInterval: 0.2)
         }
         return nil
+    }
+
+    @MainActor
+    private func firstPickerPhoto(
+        in app: XCUIApplication,
+        timeout: TimeInterval
+    ) -> XCUIElement? {
+        let deadline = Date().addingTimeInterval(timeout)
+        let excludedIdentifiers: Set<String> = ["AdditionalDimmingOverlay"]
+        while Date() < deadline {
+            let images = app.scrollViews.images.allElementsBoundByIndex
+            if let photo = images.first(where: {
+                $0.exists && !excludedIdentifiers.contains($0.identifier)
+            }) {
+                return photo
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return nil
+    }
+
+    @MainActor
+    private func scrollUntilVisible(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        maxSwipes: Int
+    ) {
+        var swipes = 0
+        while !element.exists || !element.isHittable {
+            if swipes >= maxSwipes { return }
+            app.swipeUp()
+            swipes += 1
+        }
     }
 
     @MainActor

@@ -16,17 +16,13 @@ import UIKit
 struct ItemViewModelTests {
 
     @Test
-    func initWithNilItemSetsDefaultValues() async throws {
+    func initWithNilItemSetsDefaults() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-
         let viewModel = await ItemViewModel(
-            modelContext: context,
+            modelContext: container.mainContext,
             item: nil,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: ImageFileServiceMock()
         )
 
         #expect(viewModel.item == nil)
@@ -36,312 +32,304 @@ struct ItemViewModelTests {
     }
 
     @Test
-    func initWithItemPopulatesPropertiesFromItem() async throws {
+    func initWithItemCopiesProperties() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-
         let timestamp = Date(timeIntervalSince1970: 100)
         let item = Item(
-            title: "Hello",
+            title: "Title",
             timestamp: timestamp,
-            note: "World"
+            note: "Note",
+            imageFileId: nil
         )
+        context.insert(item)
 
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: item,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: ImageFileServiceMock()
         )
 
         #expect(viewModel.item === item)
-        #expect(viewModel.title == "Hello")
+        #expect(viewModel.title == "Title")
         #expect(viewModel.timestamp == timestamp)
-        #expect(viewModel.note == "World")
+        #expect(viewModel.note == "Note")
         #expect(viewModel.imageSource == nil)
     }
 
     @Test
-    func initLoadsPhotoFromPhotoServiceWhenAvailable() async throws {
+    func initLoadsSavedImageWhenImageFileIdIsPresent() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-        let assetImage = UIImage()
-        photoService.loadAssetImageHandler = { _, _ in assetImage }
+        let imageFileService = ImageFileServiceMock()
+        let expectedImage = makeImage()
+        imageFileService.loadImageHandler = { _ in expectedImage }
 
+        let imageFileId = UUID()
         let item = Item(
-            title: "A",
+            title: "Title",
             timestamp: Date(timeIntervalSince1970: 1),
-            localIdentifier: "asset-id"
+            imageFileId: imageFileId
         )
 
         let viewModel = await ItemViewModel(
-            modelContext: context,
+            modelContext: container.mainContext,
             item: item,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: imageFileService
         )
 
-        if case .photo(let id, let image) = viewModel.imageSource {
-            #expect(id == "asset-id")
-            #expect(image === assetImage)
+        #expect(imageFileService.loadImageCallCount == 1)
+        if case let .savedImage(loadedId, loadedImage) = viewModel.imageSource {
+            #expect(loadedId == imageFileId)
+            #expect(loadedImage === expectedImage)
         } else {
-            Issue.record("imageSource was not .photo")
-        }
-        #expect(thumbnailService.loadThumbnailCallCount == 0)
-    }
-
-    @Test
-    func initFallsBackToThumbnailWhenPhotoServiceReturnsNil() async throws {
-        let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-        let thumbnailImage = UIImage()
-        thumbnailService.loadThumbnailHandler = { _ in thumbnailImage }
-
-        let item = Item(
-            title: "A",
-            timestamp: Date(timeIntervalSince1970: 1),
-            localIdentifier: "asset-id"
-        )
-
-        let viewModel = await ItemViewModel(
-            modelContext: context,
-            item: item,
-            thumbnailService: thumbnailService,
-            photoService: photoService
-        )
-
-        if case .thumbnail(let id, let image) = viewModel.imageSource {
-            #expect(id == "asset-id")
-            #expect(image === thumbnailImage)
-        } else {
-            Issue.record("imageSource was not .thumbnail")
+            Issue.record("Expected savedImage, got \(String(describing: viewModel.imageSource))")
         }
     }
 
     @Test
-    func initHasNilImageSourceWhenBothServicesReturnNil() async throws {
+    func initLeavesImageSourceNilWhenLoadImageReturnsNil() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
+        let imageFileService = ImageFileServiceMock()
 
         let item = Item(
-            title: "A",
+            title: "Title",
             timestamp: Date(timeIntervalSince1970: 1),
-            localIdentifier: "asset-id"
+            imageFileId: UUID()
         )
 
         let viewModel = await ItemViewModel(
-            modelContext: context,
+            modelContext: container.mainContext,
             item: item,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: imageFileService
         )
 
+        #expect(imageFileService.loadImageCallCount == 1)
         #expect(viewModel.imageSource == nil)
     }
 
     @Test
-    func selectPhotoUpdatesImageSourceWithLoadedAsset() async throws {
+    func selectPhotoSetsImageSource() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-        let assetImage = UIImage()
-        photoService.loadAssetImageHandler = { _, _ in assetImage }
+        let photoLibraryService = PhotoLibraryServiceMock()
+        let expectedImage = makeImage()
+        photoLibraryService.loadPhotoAssetHandler = { _ in
+            (image: expectedImage, sha256Hash: "hash")
+        }
 
         let viewModel = await ItemViewModel(
-            modelContext: context,
+            modelContext: container.mainContext,
             item: nil,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: photoLibraryService,
+            imageFileService: ImageFileServiceMock()
         )
 
-        await viewModel.selectPhoto("new-id")
+        await viewModel.selectPhoto(localIdentifier: "local-id")
 
-        if case .photo(let id, let image) = viewModel.imageSource {
-            #expect(id == "new-id")
-            #expect(image === assetImage)
+        #expect(photoLibraryService.loadPhotoAssetCallCount == 1)
+        if case let .selectedPhoto(photoImage, hash) = viewModel.imageSource {
+            #expect(photoImage === expectedImage)
+            #expect(hash == "hash")
         } else {
-            Issue.record("imageSource was not .photo")
+            Issue.record("Expected selectedPhoto, got \(String(describing: viewModel.imageSource))")
         }
     }
 
     @Test
-    func selectPhotoWithNilClearsImageSource() async throws {
+    func selectPhotoLeavesImageSourceUnchangedWhenAssetMissing() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-        photoService.loadAssetImageHandler = { _, _ in UIImage() }
 
         let viewModel = await ItemViewModel(
-            modelContext: context,
+            modelContext: container.mainContext,
             item: nil,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: ImageFileServiceMock()
         )
 
-        await viewModel.selectPhoto("first-id")
-        await viewModel.selectPhoto(nil)
+        await viewModel.selectPhoto(localIdentifier: "missing")
 
         #expect(viewModel.imageSource == nil)
     }
 
     @Test
-    func takeCameraSetsCameraImageSource() async throws {
+    func takeCameraSetsImageSource() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
+        let image = makeImage()
 
         let viewModel = await ItemViewModel(
-            modelContext: context,
+            modelContext: container.mainContext,
             item: nil,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: ImageFileServiceMock()
         )
 
-        let cameraImage = UIImage()
-        viewModel.takeCamera(cameraImage)
+        viewModel.takeCamera(image: image)
 
-        if case .camera(let image) = viewModel.imageSource {
-            #expect(image === cameraImage)
+        if case let .takeCamera(cameraImage) = viewModel.imageSource {
+            #expect(cameraImage === image)
         } else {
-            Issue.record("imageSource was not .camera")
+            Issue.record("Expected takeCamera, got \(String(describing: viewModel.imageSource))")
         }
     }
 
     @Test
     func removeImageClearsImageSource() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
-        let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
 
         let viewModel = await ItemViewModel(
-            modelContext: context,
+            modelContext: container.mainContext,
             item: nil,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: ImageFileServiceMock()
         )
+        viewModel.takeCamera(image: makeImage())
 
-        viewModel.takeCamera(UIImage())
         viewModel.removeImage()
 
         #expect(viewModel.imageSource == nil)
     }
 
     @Test
-    func saveInsertsNewItemWhenItemIsNil() async throws {
+    func saveWithoutModelContextThrows() async throws {
+        let viewModel = ItemViewModel()
+
+        await #expect(throws: SwiftDataError.self) {
+            try await viewModel.save()
+        }
+    }
+
+    @Test
+    func saveInsertsNewItemWithoutImage() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
 
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: nil,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: ImageFileServiceMock()
         )
-        let timestamp = Date(timeIntervalSince1970: 500)
         viewModel.title = "New"
-        viewModel.timestamp = timestamp
-        viewModel.note = "Note"
+        viewModel.timestamp = Date(timeIntervalSince1970: 42)
+        viewModel.note = "Memo"
 
         try await viewModel.save()
 
         let items = try context.fetch(FetchDescriptor<Item>())
         #expect(items.count == 1)
         #expect(items.first?.title == "New")
-        #expect(items.first?.timestamp == timestamp)
-        #expect(items.first?.note == "Note")
-        #expect(items.first?.localIdentifier == nil)
+        #expect(items.first?.timestamp == Date(timeIntervalSince1970: 42))
+        #expect(items.first?.note == "Memo")
+        #expect(items.first?.imageFileId == nil)
+        let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
+        #expect(imageFiles.isEmpty)
     }
 
     @Test
-    func saveUpdatesExistingItem() async throws {
+    func saveInsertsNewItemWithCameraImage() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
+        let imageFileService = ImageFileServiceMock()
+        let photoLibraryService = PhotoLibraryServiceMock()
+        photoLibraryService.saveImageToPhotoLibraryHandler = { _ in "camera-hash" }
 
-        let item = Item(
-            title: "Old",
-            timestamp: Date(timeIntervalSince1970: 1),
-            note: "Old note"
-        )
-        context.insert(item)
-        try context.save()
+        var saveImageArgs: [(UUID, UIImage)] = []
+        imageFileService.saveImageHandler = { saveImageArgs.append(($0, $1)) }
 
         let viewModel = await ItemViewModel(
             modelContext: context,
-            item: item,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            item: nil,
+            photoLibraryService: photoLibraryService,
+            imageFileService: imageFileService
         )
-        let newTimestamp = Date(timeIntervalSince1970: 999)
-        viewModel.title = "Updated"
-        viewModel.timestamp = newTimestamp
-        viewModel.note = "Updated note"
+        viewModel.title = "Cam"
+        viewModel.takeCamera(image: makeImage())
+
+        try await viewModel.save()
+
+        #expect(photoLibraryService.saveImageToPhotoLibraryCallCount == 1)
+        let items = try context.fetch(FetchDescriptor<Item>())
+        #expect(items.count == 1)
+        let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
+        #expect(imageFiles.count == 1)
+        #expect(imageFiles.first?.sha256Hash == "camera-hash")
+        #expect(items.first?.imageFileId == imageFiles.first?.id)
+        #expect(saveImageArgs.count == 1)
+        #expect(saveImageArgs.first?.0 == imageFiles.first?.id)
+    }
+
+    @Test
+    func saveInsertsNewItemWithPhotoImageCreatesImageFile() async throws {
+        let container = try makeModelContiner(isStoredInMemoryOnly: true)
+        let context = container.mainContext
+        let imageFileService = ImageFileServiceMock()
+
+        let viewModel = await ItemViewModel(
+            modelContext: context,
+            item: nil,
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: imageFileService
+        )
+        viewModel.imageSource = .selectedPhoto(
+            photoImage: makeImage(),
+            sha256Hash: "photo-hash"
+        )
 
         try await viewModel.save()
 
         let items = try context.fetch(FetchDescriptor<Item>())
         #expect(items.count == 1)
-        #expect(items.first?.title == "Updated")
-        #expect(items.first?.timestamp == newTimestamp)
-        #expect(items.first?.note == "Updated note")
+        let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
+        #expect(imageFiles.count == 1)
+        #expect(imageFiles.first?.sha256Hash == "photo-hash")
+        #expect(items.first?.imageFileId == imageFiles.first?.id)
+        #expect(imageFileService.saveImageCallCount == 1)
     }
 
     @Test
-    func saveWithPhotoImageSavesThumbnailOnly() async throws {
+    func saveInsertsNewItemWithPhotoImageReusesExistingImageFile() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-        photoService.loadAssetImageHandler = { _, _ in UIImage() }
-        var savedThumbnailIdentifiers: [String] = []
-        thumbnailService.saveThumbnailHandler = {
-            savedThumbnailIdentifiers.append($0)
-        }
+        let imageFileService = ImageFileServiceMock()
+
+        let existingImageFile = ImageFile(sha256Hash: "photo-hash")
+        let existingId = existingImageFile.id
+        context.insert(existingImageFile)
+        try context.save()
 
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: nil,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: imageFileService
         )
-        viewModel.title = "Photo"
-        await viewModel.selectPhoto("photo-id")
+        viewModel.imageSource = .selectedPhoto(
+            photoImage: makeImage(),
+            sha256Hash: "photo-hash"
+        )
 
         try await viewModel.save()
 
-        #expect(photoService.saveImageToPhotoLibraryCallCount == 0)
-        #expect(savedThumbnailIdentifiers == ["photo-id"])
         let items = try context.fetch(FetchDescriptor<Item>())
-        #expect(items.first?.localIdentifier == "photo-id")
+        #expect(items.count == 1)
+        #expect(items.first?.imageFileId == existingId)
+        let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
+        #expect(imageFiles.count == 1)
+        #expect(imageFileService.saveImageCallCount == 0)
     }
 
     @Test
-    func saveDoesNotReSaveImageWhenLocalIdentifierIsUnchanged() async throws {
+    func saveUpdatesExistingItemFields() async throws {
         let container = try makeModelContiner(isStoredInMemoryOnly: true)
         let context = container.mainContext
-        let thumbnailService = ThumbnailServiceMock()
-        let photoService = PhotoServiceMock()
-        photoService.loadAssetImageHandler = { _, _ in UIImage() }
 
         let item = Item(
-            title: "A",
+            title: "Old",
             timestamp: Date(timeIntervalSince1970: 1),
-            localIdentifier: "existing-id"
+            note: "OldNote",
+            imageFileId: nil
         )
         context.insert(item)
         try context.save()
@@ -349,14 +337,109 @@ struct ItemViewModelTests {
         let viewModel = await ItemViewModel(
             modelContext: context,
             item: item,
-            thumbnailService: thumbnailService,
-            photoService: photoService
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: ImageFileServiceMock()
+        )
+        viewModel.title = "New"
+        viewModel.note = "NewNote"
+        viewModel.timestamp = Date(timeIntervalSince1970: 200)
+
+        try await viewModel.save()
+
+        #expect(item.title == "New")
+        #expect(item.note == "NewNote")
+        #expect(item.timestamp == Date(timeIntervalSince1970: 200))
+        #expect(item.imageFileId == nil)
+        let items = try context.fetch(FetchDescriptor<Item>())
+        #expect(items.count == 1)
+    }
+
+    @Test
+    func saveDeletesOldImageWhenNoOtherItemReferences() async throws {
+        let container = try makeModelContiner(isStoredInMemoryOnly: true)
+        let context = container.mainContext
+        let imageFileService = ImageFileServiceMock()
+        imageFileService.loadImageHandler = { _ in UIImage() }
+
+        let oldImageFile = ImageFile(sha256Hash: "old-hash")
+        let oldImageFileId = oldImageFile.id
+        let item = Item(
+            title: "T",
+            timestamp: Date(timeIntervalSince1970: 1),
+            imageFileId: oldImageFileId
+        )
+        context.insert(oldImageFile)
+        context.insert(item)
+        try context.save()
+
+        var deletedImageIds: [UUID] = []
+        imageFileService.deleteImageHandler = { deletedImageIds.append($0) }
+
+        let viewModel = await ItemViewModel(
+            modelContext: context,
+            item: item,
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: imageFileService
+        )
+        viewModel.imageSource = .selectedPhoto(
+            photoImage: makeImage(),
+            sha256Hash: "new-hash"
         )
 
         try await viewModel.save()
 
-        #expect(photoService.saveImageToPhotoLibraryCallCount == 0)
-        #expect(thumbnailService.saveThumbnailCallCount == 0)
-        #expect(item.localIdentifier == "existing-id")
+        #expect(deletedImageIds == [oldImageFileId])
+        let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
+        #expect(imageFiles.count == 1)
+        #expect(imageFiles.first?.sha256Hash == "new-hash")
+        #expect(item.imageFileId == imageFiles.first?.id)
+    }
+
+    @Test
+    func saveKeepsOldImageWhenOtherItemStillReferences() async throws {
+        let container = try makeModelContiner(isStoredInMemoryOnly: true)
+        let context = container.mainContext
+        let imageFileService = ImageFileServiceMock()
+        imageFileService.loadImageHandler = { _ in UIImage() }
+
+        let oldImageFile = ImageFile(sha256Hash: "old-hash")
+        let oldImageFileId = oldImageFile.id
+        let item1 = Item(
+            title: "1",
+            timestamp: Date(timeIntervalSince1970: 1),
+            imageFileId: oldImageFileId
+        )
+        let item2 = Item(
+            title: "2",
+            timestamp: Date(timeIntervalSince1970: 2),
+            imageFileId: oldImageFileId
+        )
+        context.insert(oldImageFile)
+        context.insert(item1)
+        context.insert(item2)
+        try context.save()
+
+        let viewModel = await ItemViewModel(
+            modelContext: context,
+            item: item1,
+            photoLibraryService: PhotoLibraryServiceMock(),
+            imageFileService: imageFileService
+        )
+        viewModel.imageSource = .selectedPhoto(
+            photoImage: makeImage(),
+            sha256Hash: "new-hash"
+        )
+
+        try await viewModel.save()
+
+        #expect(imageFileService.deleteImageCallCount == 0)
+        let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
+        #expect(imageFiles.count == 2)
+        #expect(item2.imageFileId == oldImageFileId)
+    }
+
+    private func makeImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1))
+        return renderer.image { _ in }
     }
 }
