@@ -11,7 +11,7 @@ import SwiftUI
 enum ImageSource {
     case savedImage(imageFileId: UUID, savedImage: UIImage)
     case takeCamera(cameraImage: UIImage)
-    case selectedPhoto(photoImage: UIImage, sha256Hash: String)
+    case selectedPhoto(photoImage: UIImage, sha256Hash: Data)
 
     var image: UIImage {
         switch self {
@@ -36,7 +36,7 @@ enum ImageSource {
 
 @Observable
 final class ItemViewModel {
-    private let phootoLibraryService: PhotoLibraryService
+    private let photoLibraryService: PhotoLibraryService
     private let imageFileService: ImageFileService
     let modelContext: ModelContext?
 
@@ -52,7 +52,7 @@ final class ItemViewModel {
         photoLibraryService: PhotoLibraryService? = nil,
         imageFileService: ImageFileService? = nil,
     ) async {
-        self.phootoLibraryService =
+        self.photoLibraryService =
             photoLibraryService ?? PhotoLibraryServiceImpl()
         self.imageFileService = imageFileService ?? ImageFileServiceImpl()
         self.modelContext = modelContext
@@ -65,7 +65,7 @@ final class ItemViewModel {
 
     // Dummy for initialization; not actually used.
     init() {
-        self.phootoLibraryService = PhotoLibraryServiceImpl()
+        self.photoLibraryService = PhotoLibraryServiceImpl()
         self.imageFileService = ImageFileServiceImpl()
         self.modelContext = nil
         self.title = ""
@@ -75,7 +75,7 @@ final class ItemViewModel {
 
     func selectPhoto(localIdentifier: String) async {
         guard
-            let loaded = await phootoLibraryService.loadPhotoAsset(
+            let loaded = await photoLibraryService.loadPhotoAsset(
                 localIdentifier: localIdentifier
             )
         else { return }
@@ -153,7 +153,7 @@ final class ItemViewModel {
     private func saveCameraImageFile(image: UIImage) async throws -> UUID? {
         guard let modelContext else { throw SwiftDataError.missingModelContext }
 
-        let sha256Hash = await phootoLibraryService.saveImageToPhotoLibrary(
+        let sha256Hash = await photoLibraryService.saveImageToPhotoLibrary(
             image
         )
         let imageFile = ImageFile(sha256Hash: sha256Hash)
@@ -162,7 +162,7 @@ final class ItemViewModel {
         return imageFile.id
     }
 
-    private func savePhotoImageFile(image: UIImage, sha256Hash: String) throws
+    private func savePhotoImageFile(image: UIImage, sha256Hash: Data) throws
         -> UUID?
     {
         guard let modelContext else { throw SwiftDataError.missingModelContext }

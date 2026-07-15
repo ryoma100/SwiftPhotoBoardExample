@@ -59,7 +59,7 @@ struct ListViewModelTests {
         let context = container.mainContext
         let imageFileService = ImageFileServiceMock()
 
-        let imageFile = ImageFile(sha256Hash: "hash")
+        let imageFile = ImageFile(sha256Hash: Data("hash".utf8))
         let imageFileId = imageFile.id
         let item = Item(
             title: "A",
@@ -96,7 +96,7 @@ struct ListViewModelTests {
         let context = container.mainContext
         let imageFileService = ImageFileServiceMock()
 
-        let imageFile = ImageFile(sha256Hash: "hash")
+        let imageFile = ImageFile(sha256Hash: Data("hash".utf8))
         let imageFileId = imageFile.id
         let item1 = Item(
             title: "A",

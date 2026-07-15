@@ -8,16 +8,15 @@
 import CryptoKit
 import Photos
 import UIKit
-import UniformTypeIdentifiers
 
 /// @mockable
 protocol PhotoLibraryService {
-    func saveImageToPhotoLibrary(_ image: UIImage) async -> String?
-    func loadPhotoAsset(localIdentifier: String) async -> (image: UIImage, sha256Hash: String)?
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> Data?
+    func loadPhotoAsset(localIdentifier: String) async -> (image: UIImage, sha256Hash: Data)?
 }
 
 struct PhotoLibraryServiceImpl: PhotoLibraryService {
-    func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> Data? {
         guard await ensureAuthorization(), let data = heicData(image: image) else { return nil }
 
         let localIdentifier: String? = await withCheckedContinuation { continuation in
@@ -37,7 +36,7 @@ struct PhotoLibraryServiceImpl: PhotoLibraryService {
 
     func loadPhotoAsset(
         localIdentifier: String
-    ) async -> (image: UIImage, sha256Hash: String)? {
+    ) async -> (image: UIImage, sha256Hash: Data)? {
         guard await ensureAuthorization(),
               let result = await loadResourceData(localIdentifier: localIdentifier),
               let image = UIImage(data: result.data)
@@ -45,7 +44,7 @@ struct PhotoLibraryServiceImpl: PhotoLibraryService {
         return (image, result.sha256)
     }
 
-    private func loadResourceData(localIdentifier: String) async -> (data: Data, sha256: String)? {
+    private func loadResourceData(localIdentifier: String) async -> (data: Data, sha256: Data)? {
         let fetch = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
         guard let asset = fetch.firstObject else { return nil }
         let resources = PHAssetResource.assetResources(for: asset)
@@ -69,8 +68,8 @@ struct PhotoLibraryServiceImpl: PhotoLibraryService {
                         continuation.resume(returning: nil)
                         return
                     }
-                    let hex = box.hasher.finalize().map { String(format: "%02x", $0) }.joined()
-                    continuation.resume(returning: (box.data, hex))
+                    let digest = Data(box.hasher.finalize())
+                    continuation.resume(returning: (box.data, digest))
                 }
             )
         }

@@ -60,8 +60,8 @@ class PhotoLibraryServiceMock: PhotoLibraryService {
 
 
     private(set) var saveImageToPhotoLibraryCallCount = 0
-    var saveImageToPhotoLibraryHandler: ((UIImage) async -> String?)?
-    func saveImageToPhotoLibrary(_ image: UIImage) async -> String? {
+    var saveImageToPhotoLibraryHandler: ((UIImage) async -> Data?)?
+    func saveImageToPhotoLibrary(_ image: UIImage) async -> Data? {
         saveImageToPhotoLibraryCallCount += 1
         if let saveImageToPhotoLibraryHandler = saveImageToPhotoLibraryHandler {
             return await saveImageToPhotoLibraryHandler(image)
@@ -70,8 +70,8 @@ class PhotoLibraryServiceMock: PhotoLibraryService {
     }
 
     private(set) var loadPhotoAssetCallCount = 0
-    var loadPhotoAssetHandler: ((String) async -> (image: UIImage, sha256Hash: String)?)?
-    func loadPhotoAsset(localIdentifier: String) async -> (image: UIImage, sha256Hash: String)? {
+    var loadPhotoAssetHandler: ((String) async -> (image: UIImage, sha256Hash: Data)?)?
+    func loadPhotoAsset(localIdentifier: String) async -> (image: UIImage, sha256Hash: Data)? {
         loadPhotoAssetCallCount += 1
         if let loadPhotoAssetHandler = loadPhotoAssetHandler {
             return await loadPhotoAssetHandler(localIdentifier)

@@ -18,7 +18,7 @@ extension ModelContext {
         )
     }
 
-    func findImageFile(sha256Hash: String) throws -> ImageFile? {
+    func findImageFile(sha256Hash: Data) throws -> ImageFile? {
         return try fetch(
             FetchDescriptor<ImageFile>(
                 predicate: #Predicate { $0.sha256Hash == sha256Hash }

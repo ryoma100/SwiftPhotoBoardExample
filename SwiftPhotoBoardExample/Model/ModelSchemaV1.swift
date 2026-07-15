@@ -51,9 +51,9 @@ enum SchemaV1: VersionedSchema {
         private(set) var id: UUID
 
         /// Hash of original photo file
-        var sha256Hash: String?
+        var sha256Hash: Data?
 
-        init(sha256Hash: String?) {
+        init(sha256Hash: Data?) {
             self.id = UUID()
             self.sha256Hash = sha256Hash
         }

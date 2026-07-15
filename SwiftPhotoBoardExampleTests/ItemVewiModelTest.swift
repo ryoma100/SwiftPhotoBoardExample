@@ -118,7 +118,7 @@ struct ItemViewModelTests {
     func selectPhotoSetsImageSource() async throws {
         let expectedImage = makeImage()
         photoLibraryService.loadPhotoAssetHandler = { _ in
-            (image: expectedImage, sha256Hash: "hash")
+            (image: expectedImage, sha256Hash: Data("hash".utf8))
         }
 
         let viewModel = await ItemViewModel(
@@ -133,7 +133,7 @@ struct ItemViewModelTests {
         #expect(photoLibraryService.loadPhotoAssetCallCount == 1)
         if case let .selectedPhoto(photoImage, hash) = viewModel.imageSource {
             #expect(photoImage === expectedImage)
-            #expect(hash == "hash")
+            #expect(hash == Data("hash".utf8))
         } else {
             Issue.record("Expected selectedPhoto, got \(String(describing: viewModel.imageSource))")
         }
@@ -223,7 +223,7 @@ struct ItemViewModelTests {
 
     @Test
     func saveInsertsNewItemWithCameraImage() async throws {
-        photoLibraryService.saveImageToPhotoLibraryHandler = { _ in "camera-hash" }
+        photoLibraryService.saveImageToPhotoLibraryHandler = { _ in Data("camera-hash".utf8) }
 
         var saveImageArgs: [(UUID, UIImage)] = []
         imageFileService.saveImageHandler = { saveImageArgs.append(($0, $1)) }
@@ -244,7 +244,7 @@ struct ItemViewModelTests {
         #expect(items.count == 1)
         let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
         #expect(imageFiles.count == 1)
-        #expect(imageFiles.first?.sha256Hash == "camera-hash")
+        #expect(imageFiles.first?.sha256Hash == Data("camera-hash".utf8))
         #expect(items.first?.imageFileId == imageFiles.first?.id)
         #expect(saveImageArgs.count == 1)
         #expect(saveImageArgs.first?.0 == imageFiles.first?.id)
@@ -260,7 +260,7 @@ struct ItemViewModelTests {
         )
         viewModel.imageSource = .selectedPhoto(
             photoImage: makeImage(),
-            sha256Hash: "photo-hash"
+            sha256Hash: Data("photo-hash".utf8)
         )
 
         try await viewModel.save()
@@ -269,14 +269,14 @@ struct ItemViewModelTests {
         #expect(items.count == 1)
         let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
         #expect(imageFiles.count == 1)
-        #expect(imageFiles.first?.sha256Hash == "photo-hash")
+        #expect(imageFiles.first?.sha256Hash == Data("photo-hash".utf8))
         #expect(items.first?.imageFileId == imageFiles.first?.id)
         #expect(imageFileService.saveImageCallCount == 1)
     }
 
     @Test
     func saveInsertsNewItemWithPhotoImageReusesExistingImageFile() async throws {
-        let existingImageFile = ImageFile(sha256Hash: "photo-hash")
+        let existingImageFile = ImageFile(sha256Hash: Data("photo-hash".utf8))
         let existingId = existingImageFile.id
         context.insert(existingImageFile)
         try context.save()
@@ -289,7 +289,7 @@ struct ItemViewModelTests {
         )
         viewModel.imageSource = .selectedPhoto(
             photoImage: makeImage(),
-            sha256Hash: "photo-hash"
+            sha256Hash: Data("photo-hash".utf8)
         )
 
         try await viewModel.save()
@@ -337,7 +337,7 @@ struct ItemViewModelTests {
     func saveDeletesOldImageWhenNoOtherItemReferences() async throws {
         imageFileService.loadImageHandler = { _ in UIImage() }
 
-        let oldImageFile = ImageFile(sha256Hash: "old-hash")
+        let oldImageFile = ImageFile(sha256Hash: Data("old-hash".utf8))
         let oldImageFileId = oldImageFile.id
         let item = Item(
             title: "T",
@@ -359,7 +359,7 @@ struct ItemViewModelTests {
         )
         viewModel.imageSource = .selectedPhoto(
             photoImage: makeImage(),
-            sha256Hash: "new-hash"
+            sha256Hash: Data("new-hash".utf8)
         )
 
         try await viewModel.save()
@@ -367,7 +367,7 @@ struct ItemViewModelTests {
         #expect(deletedImageIds == [oldImageFileId])
         let imageFiles = try context.fetch(FetchDescriptor<ImageFile>())
         #expect(imageFiles.count == 1)
-        #expect(imageFiles.first?.sha256Hash == "new-hash")
+        #expect(imageFiles.first?.sha256Hash == Data("new-hash".utf8))
         #expect(item.imageFileId == imageFiles.first?.id)
     }
 
@@ -375,7 +375,7 @@ struct ItemViewModelTests {
     func saveKeepsOldImageWhenOtherItemStillReferences() async throws {
         imageFileService.loadImageHandler = { _ in UIImage() }
 
-        let oldImageFile = ImageFile(sha256Hash: "old-hash")
+        let oldImageFile = ImageFile(sha256Hash: Data("old-hash".utf8))
         let oldImageFileId = oldImageFile.id
         let item1 = Item(
             title: "1",
@@ -400,7 +400,7 @@ struct ItemViewModelTests {
         )
         viewModel.imageSource = .selectedPhoto(
             photoImage: makeImage(),
-            sha256Hash: "new-hash"
+            sha256Hash: Data("new-hash".utf8)
         )
 
         try await viewModel.save()
